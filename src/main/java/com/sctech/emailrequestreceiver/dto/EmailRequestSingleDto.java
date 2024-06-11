@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.util.List;
 
+@Data
 @Schema(hidden = true)
 public class EmailRequestSingleDto extends EmailRequestBaseDto {
 
@@ -24,31 +25,6 @@ public class EmailRequestSingleDto extends EmailRequestBaseDto {
     @Valid
     private List<Attachment> attachments;
 
-    // Getters and setters
-
-    public String getSubject() {
-        return subject;
-    }
-
-    public void setSubject(String subject) {
-        this.subject = subject;
-    }
-
-    public String getHtmlBody() {
-        return htmlBody;
-    }
-
-    public void setHtmlBody(String htmlBody) {
-        this.htmlBody = htmlBody;
-    }
-
-    public List<Attachment> getAttachments() {
-        return attachments;
-    }
-
-    public void setAttachments(List<Attachment> attachments) {
-        this.attachments = attachments;
-    }
 
     @Data
     public static class Attachment {
@@ -66,28 +42,5 @@ public class EmailRequestSingleDto extends EmailRequestBaseDto {
         private String contentType;
 
         // Getters and setters
-        public String getFilename() {
-            return filename;
-        }
-
-        public void setFilename(String filename) {
-            this.filename = filename;
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
-
-        public String getContentType() {
-            return contentType;
-        }
-
-        public void setContentType(String contentType) {
-            this.contentType = contentType;
-        }
     }
 }

@@ -54,8 +54,8 @@ public class EmailSingleRequestReceiverService {
         //Tracking FLags
         EmailData.TrackingFlags trackingFlags = new EmailData.TrackingFlags();
         emailDataEntity.setTrackingFlags(trackingFlags);
-        trackingFlags.setLinks(emailRequestPayload.getIsTrackOpens());
-        trackingFlags.setLinks(emailRequestPayload.getIsTrackLinks());
+        trackingFlags.setLinks(emailRequestPayload.getTrackOpens());
+        trackingFlags.setLinks(emailRequestPayload.getTrackLinks());
 
         //Global
         ////Subject
