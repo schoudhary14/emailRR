@@ -1,0 +1,57 @@
+{"name" : "emailRequestReceiver",
+  "@timestamp": {
+    "$resolver": "timestamp",
+    "pattern": {
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "timeZone": "UTC"
+    }
+  },
+  "requestId" : {
+    "$resolver": "mdc",
+    "key": "App-Request-Id"
+  },
+  "thread": {
+    "$resolver": "thread",
+    "field": "name"
+  },
+  "level": {
+    "$resolver": "level",
+    "field": "name"
+  },
+  "message": {
+    "$resolver": "message",
+    "stringified": true
+  },
+  "thrown" : {
+    "message": {
+      "$resolver": "exception",
+      "field": "message"
+    },
+    "name" : {
+      "$resolver": "exception",
+      "field": "className"
+    },
+    "stackTrace" : {
+      "$resolver": "exception",
+      "field": "stackTrace"
+    }
+  },
+  "source" : {
+    "class" : {
+      "$resolver": "source",
+      "field": "className"
+    },
+    "method" : {
+      "$resolver": "source",
+      "field": "methodName"
+    },
+    "file" : {
+      "$resolver": "source",
+      "field": "fileName"
+    },
+    "line" : {
+      "$resolver": "source",
+      "field": "lineNumber"
+    }
+  }
+}
