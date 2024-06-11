@@ -58,7 +58,7 @@ public class EmailBatchRequestReceiverService {
         //Tracking Flags
         EmailData.TrackingFlags trackingFlags = new EmailData.TrackingFlags();
         emailDataEntity.setTrackingFlags(trackingFlags);
-        trackingFlags.setLinks(batchEmailRequestDto.getTrackOpens());
+        trackingFlags.setOpens(batchEmailRequestDto.getTrackOpens());
         trackingFlags.setLinks(batchEmailRequestDto.getTrackLinks());
 
         //Global

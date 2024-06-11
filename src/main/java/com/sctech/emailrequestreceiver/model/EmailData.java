@@ -35,7 +35,7 @@ public class EmailData {
 
     @Data
     public static class TrackingFlags {
-        private Boolean open;
+        private Boolean opens;
         private Boolean links;
     }
 
