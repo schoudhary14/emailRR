@@ -5,10 +5,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
 
+@Data
 @Schema(hidden = true)
 public class EmailRequestBaseDto {
     @NotEmpty(message = "from is Empty")
@@ -30,52 +32,6 @@ public class EmailRequestBaseDto {
     private Map<String, String> globalDynamicHTMLBody;
 
     private String replyTo;
-
-    public String getFrom() {return from;}
-
-    public void setFrom(String from) {this.from = from;}
-
-    public List<Recipient> getTo() {return to;}
-
-    public void setTo(List<Recipient> to) {this.to = to;}
-
-    public boolean getIsTrackOpens() {
-        return trackOpens;
-    }
-
-    public void setTrackOpens(boolean trackOpens) {
-        this.trackOpens = trackOpens;
-    }
-
-    public boolean getIsTrackLinks() {
-        return trackLinks;
-    }
-
-    public void setTrackLinks(boolean trackLinks) {
-        this.trackLinks = trackLinks;
-    }
-
-    public Map<String, String> getGlobalDynamicSubject() {
-        return globalDynamicSubject;
-    }
-
-    public void setGlobalDynamicSubject(Map<String, String> globalDynamicSubject) {
-        this.globalDynamicSubject = globalDynamicSubject;
-    }
-
-    public Map<String, String> getGlobalDynamicHTMLBody() {
-        return globalDynamicHTMLBody;
-    }
-
-    public void setGlobalDynamicHTMLBody(Map<String, String> globalDynamicHTMLBody) {
-        this.globalDynamicHTMLBody = globalDynamicHTMLBody;
-    }
-
-    public String getReplyTo() {return replyTo;}
-
-    public void setReplyTo(String replyTo) {
-        this.replyTo = replyTo;
-    }
 
     public static class Recipient {
 

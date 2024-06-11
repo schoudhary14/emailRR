@@ -16,7 +16,7 @@ public class EmailData {
 
     @Id
     private String id;
-    private String entityId;
+    private String companyId;
     private String fromName;
     private String from;
     private String replyTo;

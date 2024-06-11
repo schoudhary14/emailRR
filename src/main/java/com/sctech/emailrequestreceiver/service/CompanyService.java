@@ -43,8 +43,8 @@ public class CompanyService {
     }
 
 
-    public String deductCredit(String entityId, Long usedCredits){
-        Optional<Company> OptionalCompanyDetailEntity = companyRepository.findById(entityId);
+    public String deductCredit(String companyId, Long usedCredits){
+        Optional<Company> OptionalCompanyDetailEntity = companyRepository.findById(companyId);
 
         if (OptionalCompanyDetailEntity.isEmpty()){
             return "notFound";

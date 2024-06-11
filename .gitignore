@@ -40,3 +40,6 @@ out/
 ### Log File
 /logs
 .log
+
+### Mac ###
+.DS_Store

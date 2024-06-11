@@ -14,8 +14,8 @@ public class CreditService {
     @Autowired
     private CompanyService companyService;
 
-    public boolean isBalanceAvailable(String entityId){
-        Long currentBalance = companyService.getCredits(entityId);
+    public boolean isBalanceAvailable(String companyId){
+        Long currentBalance = companyService.getCredits(companyId);
         return currentBalance > 0;
     }
 }

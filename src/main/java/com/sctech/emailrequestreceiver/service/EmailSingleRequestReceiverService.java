@@ -39,7 +39,7 @@ public class EmailSingleRequestReceiverService {
 
         EmailData emailDataEntity = new EmailData();
         //Request Meta
-        emailDataEntity.setEntityId(MDC.get(AppHeaders.ENTITY_ID));
+        emailDataEntity.setCompanyId(MDC.get(AppHeaders.ENTITY_ID));
         emailDataEntity.setClientChannelId(MDC.get(AppHeaders.ENTITY_CHANNEL_NAME));
         emailDataEntity.setRequestMode("API");
 
