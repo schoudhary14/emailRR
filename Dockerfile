@@ -15,7 +15,7 @@ ENV KAFKA_BROKER_HOST=${KAFKA_BROKER_HOST}
 
 COPY build/libs/emailapp-0.0.1.jar /${BASE_DIR}/
 
-RUN apk update && apk upgrade -y
+RUN apk update && apk upgrade
 
 WORKDIR /${BASE_DIR}
 
