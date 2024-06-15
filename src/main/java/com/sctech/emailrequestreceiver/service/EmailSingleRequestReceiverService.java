@@ -2,6 +2,7 @@ package com.sctech.emailrequestreceiver.service;
 
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
+import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
 import com.sctech.emailrequestreceiver.enums.CompanyType;
 import com.sctech.emailrequestreceiver.model.EmailData;
 import com.sctech.emailrequestreceiver.util.EmailDynamicVariableReplace;
@@ -35,12 +36,25 @@ public class EmailSingleRequestReceiverService {
     @Autowired
     private CreditService creditService;
 
-    public void process(EmailRequestSingleDto emailRequestPayload, String apiKey){
+    @Autowired
+    private DomainService domainService;
+
+
+    public EmailResponseDto process(EmailRequestSingleDto emailRequestPayload, String apiKey){
+
+        EmailResponseDto emailResponseDto = new EmailResponseDto();
+
+        if (!domainService.isDomainVerified(MDC.get(AppHeaders.COMPANY_ID), emailRequestPayload.getFrom().toString().split("@")[1])){
+            emailResponseDto.setStatusCode(400);
+            emailResponseDto.setMessage("Invalid From Domain");
+            return emailResponseDto;
+        }
+
 
         EmailData emailDataEntity = new EmailData();
         //Request Meta
-        emailDataEntity.setCompanyId(MDC.get(AppHeaders.ENTITY_ID));
-        emailDataEntity.setClientChannelId(MDC.get(AppHeaders.ENTITY_CHANNEL_NAME));
+        emailDataEntity.setCompanyId(MDC.get(AppHeaders.COMPANY_ID));
+        emailDataEntity.setClientChannelId(MDC.get(AppHeaders.COMPANY_CHANNEL_NAME));
         emailDataEntity.setRequestMode("API");
 
         //From
@@ -96,7 +110,7 @@ public class EmailSingleRequestReceiverService {
             emailDataEntity.setCreatedAt(LocalDateTime.now());
 
             //CompanyType.SANDBOX
-            if(MDC.get(AppHeaders.ENTITY_TYPE).equals(CompanyType.SANDBOX.name())){
+            if(MDC.get(AppHeaders.COMPANY_BILL_TYPE).equals(CompanyType.SANDBOX.name())){
                 System.out.println("sandbox");
                 kafkaService.queueRequest(sandboxRequestTopic, emailDataEntity);
             }else{
@@ -105,6 +119,15 @@ public class EmailSingleRequestReceiverService {
             }
 
         }
+        emailResponseDto.setStatusCode(200);
+        emailResponseDto.setMessage("Mail sent successfully");
+
+        EmailResponseDto.EmailResponseData emailResponseData = new EmailResponseDto.EmailResponseData();
+        emailResponseData.setSubmittedTime(LocalDateTime.now());
+        emailResponseData.setTransactionID(MDC.get(AppHeaders.REQUEST_ID));
+        emailResponseDto.setData(emailResponseData);
+
+        return emailResponseDto;
     }
 
 }

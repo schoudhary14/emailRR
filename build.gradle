@@ -34,6 +34,11 @@ dependencies {
 
 	implementation 'software.amazon.msk:aws-msk-iam-auth:2.1.0'
 
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.hibernate.validator:hibernate-validator:8.0.0.Final'
+
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 

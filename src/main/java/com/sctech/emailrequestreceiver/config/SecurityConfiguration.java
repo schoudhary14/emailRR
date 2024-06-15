@@ -1,7 +1,7 @@
 package com.sctech.emailrequestreceiver.config;
 
 import com.sctech.emailrequestreceiver.filter.ApiKeyAuthFilter;
-import com.sctech.emailrequestreceiver.security.UnauthorizedHandler;
+import com.sctech.emailrequestreceiver.exceptions.UnauthorizedHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,8 +20,8 @@ public class SecurityConfiguration {
     @Autowired
     private ApiKeyAuthFilter apiKeyFilter;
 
-    @Autowired
-    private UnauthorizedHandler unauthorizedHandler;
+//    @Autowired
+//    private UnauthorizedHandler unauthorizedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,7 +31,7 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable)
-                .exceptionHandling(configurer -> configurer.authenticationEntryPoint(unauthorizedHandler))
+//                .exceptionHandling(configurer -> configurer.authenticationEntryPoint(unauthorizedHandler))
                 .securityMatcher("/**")
                 .authorizeHttpRequests(registry -> registry
                         .requestMatchers( AntPathRequestMatcher.antMatcher("/actuator/**") ).permitAll()

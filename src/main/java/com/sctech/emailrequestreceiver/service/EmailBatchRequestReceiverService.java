@@ -44,8 +44,8 @@ public class EmailBatchRequestReceiverService {
 
         EmailData emailDataEntity = new EmailData();
         //Request Meta
-        emailDataEntity.setCompanyId(MDC.get(AppHeaders.ENTITY_ID));
-        emailDataEntity.setClientChannelId(MDC.get(AppHeaders.ENTITY_CHANNEL_NAME));
+        emailDataEntity.setCompanyId(MDC.get(AppHeaders.COMPANY_ID));
+        emailDataEntity.setClientChannelId(MDC.get(AppHeaders.COMPANY_CHANNEL_NAME));
         emailDataEntity.setRequestMode("API");
         emailDataEntity.setType(emailTemplates.getContentType());
 
@@ -95,7 +95,7 @@ public class EmailBatchRequestReceiverService {
             }
             emailDataEntity.setAttachment(emailDataAttachments);
             //CompanyType.SANDBOX
-            if(MDC.get(AppHeaders.ENTITY_TYPE).equals(CompanyType.SANDBOX.name())){
+            if(MDC.get(AppHeaders.COMPANY_BILL_TYPE).equals(CompanyType.SANDBOX.name())){
                 System.out.println("sandbox");
                 kafkaService.queueRequest(sandboxRequestTopic, emailDataEntity);
             }else{

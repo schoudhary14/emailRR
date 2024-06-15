@@ -52,34 +52,12 @@ public class EmailRequestReceiverController {
 
     @PostMapping("/send")
     public EmailResponseDto emailRequest(@Valid @RequestBody EmailRequestSingleDto emailRequestPayload,
-                                         @RequestHeader("x-apikey") String apiKey,
+                                         @Valid @RequestHeader("x-apikey") String apiKey,
                                          BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
         System.out.println("Email Request");
-        EmailResponseDto emailResponseDto = new EmailResponseDto();
 
-        if (bindingResult.hasErrors()) {
-            emailResponseDto.setStatusCode(400);
-            emailResponseDto.setMessage("Invalid request. " + bindingResult.getAllErrors());
-            // If validation fails, return error messages
-            return emailResponseDto;
-        }
-
-        if (!emailRequestPayload.getFrom().toString().split("@")[1].equals("hosterhero.com")){
-            emailResponseDto.setStatusCode(400);
-            emailResponseDto.setMessage("Invalid Domain");
-            return emailResponseDto;
-        }
-
-        emailSingleRequestReceiverService.process(emailRequestPayload, apiKey);
-        emailResponseDto.setStatusCode(200);
-        emailResponseDto.setMessage("Mail sent successfully");
-
-        EmailResponseDto.EmailResponseData emailResponseData = new EmailResponseDto.EmailResponseData();
-        emailResponseData.setSubmittedTime(LocalDateTime.now());
-        emailResponseData.setTransactionID(MDC.get(AppHeaders.REQUEST_ID));
-        emailResponseDto.setData(emailResponseData);
-
+        EmailResponseDto emailResponseDto = emailSingleRequestReceiverService.process(emailRequestPayload, apiKey);
         return emailResponseDto;
     }
 

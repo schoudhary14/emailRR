@@ -13,30 +13,45 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
+    public ResponseEntity<ExceptionResponseDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+
+        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
+        List<String> invalidFieldList = new ArrayList<>();
+
+        e.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = null;
+            try {
+                fieldName = ((FieldError) error).getField();
+
+            } catch (ClassCastException ex) {
+                fieldName = error.getObjectName();
+            }
+            if(!invalidFieldList.contains(fieldName)) {
+                invalidFieldList.add(fieldName);
+            }
         });
-        return errors;
+
+        exceptionResponseDto.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        exceptionResponseDto.setMessage(ErrorMessages.INVALID + " : " + invalidFieldList);
+        exceptionResponseDto.setErrorCode(ErrorCodes.INVALID);
+
+        return new ResponseEntity<>(exceptionResponseDto, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NotExistsException.class)
     public ExceptionResponseDto handleUserNotExistsException(NotExistsException ex, WebRequest request) {
         ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
         exceptionResponseDto.setStatusCode(HttpStatus.CONFLICT.value());
-        exceptionResponseDto.setErrorCode("UserNotExists");
+        exceptionResponseDto.setErrorCode("NotExists");
         exceptionResponseDto.setMessage(ex.getMessage());
         return exceptionResponseDto;
     }
@@ -50,6 +65,24 @@ public class GlobalExceptionHandler {
         return exceptionResponseDto;
     }
 
+    @ExceptionHandler(UnauthorizedHandler.class)
+    public ExceptionResponseDto handleUnauthorizedHandler(UnauthorizedHandler ex, WebRequest request) {
+        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
+        exceptionResponseDto.setStatusCode(HttpStatus.FORBIDDEN.value());
+        exceptionResponseDto.setErrorCode(ErrorCodes.FORBIDDEN);
+        exceptionResponseDto.setMessage(ErrorMessages.FORBIDDEN);
+        return exceptionResponseDto;
+    }
+
+    @ExceptionHandler(NoCreditsHandler.class)
+    public ExceptionResponseDto handleUserNotExistsException(NoCreditsHandler ex, WebRequest request) {
+        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
+        exceptionResponseDto.setStatusCode(HttpStatus.TOO_MANY_REQUESTS.value());
+        exceptionResponseDto.setErrorCode(ErrorCodes.NO_CREDITS);
+        exceptionResponseDto.setMessage(ErrorMessages.NO_CREDITS);
+        return exceptionResponseDto;
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ExceptionResponseDto> handleSecurityException(Exception exception) {
@@ -60,8 +93,8 @@ public class GlobalExceptionHandler {
 
         if (exception instanceof AccessDeniedException) {
             exceptionResponseDto.setStatusCode(403);
-            exceptionResponseDto.setMessage(ErrorMessages.USER_ACCESS_RESTRICT);
-            exceptionResponseDto.setErrorCode(ErrorCodes.USER_ACCESS_RESTRICT);
+            exceptionResponseDto.setMessage(ErrorMessages.ACCESS_RESTRICT);
+            exceptionResponseDto.setErrorCode(ErrorCodes.ACCESS_RESTRICT);
         }
 
         if (exceptionResponseDto.getErrorCode() == null || exceptionResponseDto.getErrorCode().isEmpty()) {
