@@ -1,4 +1,4 @@
-FROM openjdk:17-alpine
+FROM amazoncorretto:17-alpine
 
 ARG MONGO_USER
 ARG MONGO_PASSWORD
