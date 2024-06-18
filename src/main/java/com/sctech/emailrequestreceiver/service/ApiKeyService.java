@@ -2,6 +2,7 @@ package com.sctech.emailrequestreceiver.service;
 
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.enums.EntityStatus;
+import com.sctech.emailrequestreceiver.exceptions.NoCreditsHandler;
 import com.sctech.emailrequestreceiver.exceptions.UnauthorizedHandler;
 import com.sctech.emailrequestreceiver.model.Company;
 import com.sctech.emailrequestreceiver.security.ApiKeyAuth;
@@ -41,10 +42,10 @@ public class ApiKeyService {
         String requestApiKey = request.getHeader(AppHeaders.API_HEADER);
 
         if(requestApiKey == null){
-            throw new UnauthorizedHandler();
+            return Optional.empty();
         } else if(requestApiKey.length() < KEY_LENGTH || requestApiKey.length() > MAX_API_KEY_LENGTH || !requestApiKey.matches(API_KEY_REGEX)){
             System.out.println("requirement did not matched : provide key : " + requestApiKey + " and length : " + requestApiKey.length());
-            throw new UnauthorizedHandler();
+            return Optional.empty();
         }
 
         String remoteAddr = request.getRemoteAddr();
@@ -52,11 +53,11 @@ public class ApiKeyService {
 
         if(company == null){
             System.out.println("API Key not matched");
-            throw new UnauthorizedHandler();
+            return Optional.empty();
         } else if(company.getStatus().equals(EntityStatus.INACTIVE)){
-            throw new UnauthorizedHandler();
+            return Optional.empty();
         } else if(company.getCredits() <= 0){
-            throw new UnauthorizedHandler();
+            throw new NoCreditsHandler();
         }
 
         List<Company.ApiKey> optionalApiKeyEntities = company.getApiKeys();
@@ -71,7 +72,7 @@ public class ApiKeyService {
         if (apiKeyEntity != null){
             if(apiKeyEntity.getStatus().equals(EntityStatus.INACTIVE) || (apiKeyEntity.getIpAddress() != null && !Arrays.asList(apiKeyEntity.getIpAddress()).contains(remoteAddr))){
                 System.out.println("API Key is inactive or ip address mismatched");
-                throw new UnauthorizedHandler();
+                return Optional.empty();
             }
 
         }

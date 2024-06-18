@@ -102,7 +102,6 @@ public class EmailBatchRequestReceiverService {
                 System.out.println("sent");
                 kafkaService.queueRequest(requestTopic, emailDataEntity);
             }
-
         }
     }
 }

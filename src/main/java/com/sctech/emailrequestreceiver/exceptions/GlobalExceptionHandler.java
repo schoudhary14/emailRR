@@ -1,108 +1,124 @@
 package com.sctech.emailrequestreceiver.exceptions;
 
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import com.sctech.emailrequestreceiver.constant.ErrorCodes;
 import com.sctech.emailrequestreceiver.constant.ErrorMessages;
 import com.sctech.emailrequestreceiver.dto.ExceptionResponseDto;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.FieldError;
+import org.springframework.security.authentication.AccountStatusException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ExceptionResponseDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-
-        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
+    public ResponseEntity<ExceptionResponseDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         List<String> invalidFieldList = new ArrayList<>();
-
-        e.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = null;
-            try {
-                fieldName = ((FieldError) error).getField();
-
-            } catch (ClassCastException ex) {
-                fieldName = error.getObjectName();
-            }
-            if(!invalidFieldList.contains(fieldName)) {
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            String fieldName = error.getField();
+            if (!invalidFieldList.contains(fieldName)) {
                 invalidFieldList.add(fieldName);
             }
         });
-
-        exceptionResponseDto.setStatusCode(HttpStatus.BAD_REQUEST.value());
-        exceptionResponseDto.setMessage(ErrorMessages.INVALID + " : " + invalidFieldList);
-        exceptionResponseDto.setErrorCode(ErrorCodes.INVALID);
-
-        return new ResponseEntity<>(exceptionResponseDto, HttpStatus.BAD_REQUEST);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + invalidFieldList);
     }
 
-    @ExceptionHandler(NotExistsException.class)
-    public ExceptionResponseDto handleUserNotExistsException(NotExistsException ex, WebRequest request) {
-        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
-        exceptionResponseDto.setStatusCode(HttpStatus.CONFLICT.value());
-        exceptionResponseDto.setErrorCode("NotExists");
-        exceptionResponseDto.setMessage(ex.getMessage());
-        return exceptionResponseDto;
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ExceptionResponseDto> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                                                 WebRequest request) {
+
+        // Customize error message based on the specific exception details
+        String fieldName = ex.getName();
+        String invalidValue = ex.getValue().toString();
+        String errorDetail = "Invalid value " + invalidValue + " for parameter " + fieldName + ".";
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + errorDetail);
     }
 
-    @ExceptionHandler(InvalidRequestException.class)
-    public ExceptionResponseDto handleUserNotExistsException(InvalidRequestException ex, WebRequest request) {
-        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
-        exceptionResponseDto.setStatusCode(HttpStatus.BAD_REQUEST.value());
-        exceptionResponseDto.setErrorCode("InvalidRequest");
-        exceptionResponseDto.setMessage(ex.getMessage());
-        return exceptionResponseDto;
+    @ExceptionHandler(ValueInstantiationException.class)
+    public ResponseEntity<ExceptionResponseDto> handleValueInstantiationException(ValueInstantiationException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + ex.getMessage());
     }
 
-    @ExceptionHandler(UnauthorizedHandler.class)
-    public ExceptionResponseDto handleUnauthorizedHandler(UnauthorizedHandler ex, WebRequest request) {
-        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
-        exceptionResponseDto.setStatusCode(HttpStatus.FORBIDDEN.value());
-        exceptionResponseDto.setErrorCode(ErrorCodes.FORBIDDEN);
-        exceptionResponseDto.setMessage(ErrorMessages.FORBIDDEN);
-        return exceptionResponseDto;
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ExceptionResponseDto> handleConstraintViolationException(ConstraintViolationException ex) {
+        String details = ex.getConstraintViolations().stream()
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .collect(Collectors.joining(", "));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorMessages.INVALID, ErrorMessages.INVALID + " : " + details);
     }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ExceptionResponseDto> handleNoResourceFoundException(NoResourceFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND.value(), ErrorCodes.NOT_EXISTS, ErrorMessages.NOT_EXISTS + " : " + ex.getMessage());
+    }
+
 
     @ExceptionHandler(NoCreditsHandler.class)
-    public ExceptionResponseDto handleUserNotExistsException(NoCreditsHandler ex, WebRequest request) {
-        ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
-        exceptionResponseDto.setStatusCode(HttpStatus.TOO_MANY_REQUESTS.value());
-        exceptionResponseDto.setErrorCode(ErrorCodes.NO_CREDITS);
-        exceptionResponseDto.setMessage(ErrorMessages.NO_CREDITS);
-        return exceptionResponseDto;
+    public ResponseEntity<ExceptionResponseDto> handleUserNotExistsException(NoCreditsHandler ex, WebRequest request) {
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(), ErrorCodes.NO_CREDITS, ErrorMessages.NO_CREDITS);
     }
 
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ExceptionResponseDto> handleMultipartException(MultipartException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ex.getMessage());
+    }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ExceptionResponseDto> handleSecurityException(Exception exception) {
+    public ResponseEntity<ExceptionResponseDto> handleSecurityException(Exception ex) {
         ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
 
         // TODO send this stack trace to an observability tool
-        exception.printStackTrace();
+        ex.printStackTrace();
 
-        if (exception instanceof AccessDeniedException) {
-            exceptionResponseDto.setStatusCode(403);
-            exceptionResponseDto.setMessage(ErrorMessages.ACCESS_RESTRICT);
-            exceptionResponseDto.setErrorCode(ErrorCodes.ACCESS_RESTRICT);
+        Integer status = null;
+        String errorCode = null;
+        String message = null;
+        // Handle specific exception types
+        if (ex instanceof BadCredentialsException) {
+            status = HttpStatus.FORBIDDEN.value();
+            errorCode = ErrorMessages.INVALID;
+            message = ErrorCodes.INVALID;
+        } else if (ex instanceof AccountStatusException) {
+            status = HttpStatus.FORBIDDEN.value();
+            errorCode = ErrorMessages.LOCKED;
+            message = ErrorCodes.LOCKED;
+        } else if (ex instanceof AccessDeniedException) {
+            status = HttpStatus.FORBIDDEN.value();
+            errorCode = ErrorMessages.ACCESS_RESTRICT;
+            message = ErrorCodes.ACCESS_RESTRICT;
+        } else if (ex instanceof IllegalArgumentException) {
+            status = HttpStatus.BAD_REQUEST.value();
+            errorCode = ErrorMessages.INVALID + " : " + ex.getMessage();
+            message = ErrorCodes.INVALID;
+        } else {
+            status = HttpStatus.INTERNAL_SERVER_ERROR.value();
+            errorCode = ErrorMessages.UNKNOWN;
+            message = ErrorCodes.UNKNOWN;
         }
-
-        if (exceptionResponseDto.getErrorCode() == null || exceptionResponseDto.getErrorCode().isEmpty()) {
-            exceptionResponseDto.setStatusCode(403);
-            exceptionResponseDto.setMessage(ErrorMessages.UNKNOWN);
-            exceptionResponseDto.setErrorCode(ErrorCodes.UNKNOWN);
-        }
-
-        return new ResponseEntity<>(exceptionResponseDto, HttpStatus.valueOf(exceptionResponseDto.getStatusCode()));
+        return buildErrorResponse(status, errorCode, message);
     }
+
+    // Helper method to construct error response
+    private ResponseEntity<ExceptionResponseDto> buildErrorResponse(Integer status, String errorCode, String message) {
+        ExceptionResponseDto errorResponse = new ExceptionResponseDto();
+        errorResponse.setStatusCode(status);
+        errorResponse.setErrorCode(errorCode);
+        errorResponse.setMessage(message);
+        return ResponseEntity.status(status).body(errorResponse);
+    }
+
 }
