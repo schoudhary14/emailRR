@@ -1,5 +1,6 @@
 package com.sctech.emailrequestreceiver.model;
 
+import com.sctech.emailrequestreceiver.enums.EmailContentType;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,11 +12,13 @@ import java.time.LocalDateTime;
 public class EmailTemplates {
     @Id
     private String id;
+    private String companyId;
+    private Integer templateId;
     private String name;
     private String content;
-    private String contentType;
+    private EmailContentType contentType;
     private Boolean attachmentRequired;
+    private String[] tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Integer templateId;
 }
