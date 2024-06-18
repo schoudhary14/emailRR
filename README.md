@@ -8,3 +8,4 @@
 - MONGO_PASSWORD
 - REDIS_HOST
 - REDIS_PORT
+- profile
