@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,10 @@ public class ApiKeyService {
     @Autowired
     private AppHeaders appHeaders;
 
+    @Autowired
+    private RedisService redisService;
+
+
     private static final int KEY_LENGTH = 32;
     private static final int MAX_API_KEY_LENGTH = 64;
     private static final String API_KEY_REGEX = "^[a-zA-Z0-9]*$";
@@ -43,7 +48,7 @@ public class ApiKeyService {
         }
 
         String remoteAddr = request.getRemoteAddr();
-        Company company = companyService.getApiKeyDetailsByKey(requestApiKey);
+        Company company = redisService.getCompanyFromApiKey(requestApiKey);
 
         if(company == null){
             System.out.println("API Key not matched");

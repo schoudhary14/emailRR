@@ -6,6 +6,7 @@ import com.sctech.emailrequestreceiver.repository.CompanyRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,9 +19,6 @@ public class CompanyService {
     @Autowired
     private CompanyRepository companyRepository;
 
-    public List<Company> getAll(){
-        return new ArrayList<>(companyRepository.findAll());
-    }
 
     public Company getDetail(String id){
         Optional<Company> company = companyRepository.findById(id);
@@ -41,7 +39,6 @@ public class CompanyService {
     public Company getApiKeyDetailsByKey(String apiKey){
         return companyRepository.findByApiKeyKey(apiKey);
     }
-
 
     public String deductCredit(String companyId, Long usedCredits){
         Optional<Company> OptionalCompanyDetailEntity = companyRepository.findById(companyId);

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Document(collection = "emailTemplates")
-public class EmailTemplates {
+public class Template {
     @Id
     private String id;
     private String companyId;

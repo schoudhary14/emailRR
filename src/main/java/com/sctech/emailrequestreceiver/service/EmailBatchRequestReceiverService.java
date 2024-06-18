@@ -5,7 +5,7 @@ import com.sctech.emailrequestreceiver.dto.EmailRequestBatchDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
 import com.sctech.emailrequestreceiver.enums.CompanyType;
 import com.sctech.emailrequestreceiver.model.EmailData;
-import com.sctech.emailrequestreceiver.model.EmailTemplates;
+import com.sctech.emailrequestreceiver.model.Template;
 import com.sctech.emailrequestreceiver.util.EmailDynamicVariableReplace;
 import com.sctech.emailrequestreceiver.util.ZipFileHelper;
 import org.slf4j.MDC;
@@ -38,16 +38,16 @@ public class EmailBatchRequestReceiverService {
     @Autowired
     private ZipFileHelper zipFileHelper;
 
-    public void process(EmailRequestBatchDto batchEmailRequestDto, EmailTemplates emailTemplates, MultipartFile zipFile){
+    public void process(EmailRequestBatchDto batchEmailRequestDto, Template template, MultipartFile zipFile){
 
-        String htmlBody = emailTemplates.getContent();
+        String htmlBody = template.getContent();
 
         EmailData emailDataEntity = new EmailData();
         //Request Meta
         emailDataEntity.setCompanyId(MDC.get(AppHeaders.COMPANY_ID));
         emailDataEntity.setClientChannelId(MDC.get(AppHeaders.COMPANY_CHANNEL_NAME));
         emailDataEntity.setRequestMode("API");
-        emailDataEntity.setType(emailTemplates.getContentType());
+        emailDataEntity.setType(template.getContentType().toString());
 
         //From
         emailDataEntity.setFrom(batchEmailRequestDto.getFrom());

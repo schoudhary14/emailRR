@@ -5,10 +5,11 @@ import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.dto.EmailRequestBatchDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
 import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
-import com.sctech.emailrequestreceiver.model.EmailTemplates;
+import com.sctech.emailrequestreceiver.model.Template;
 import com.sctech.emailrequestreceiver.service.EmailBatchRequestReceiverService;
 import com.sctech.emailrequestreceiver.service.EmailSingleRequestReceiverService;
 import com.sctech.emailrequestreceiver.service.EmailTemplateService;
+import com.sctech.emailrequestreceiver.service.RedisService;
 import com.sctech.emailrequestreceiver.util.EmailDynamicVariableReplace;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -44,10 +45,10 @@ public class EmailRequestReceiverController {
     private EmailDynamicVariableReplace emailDynamicVariableReplace;
 
     @Autowired
-    private EmailTemplateService emailTemplateService;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private RedisService redisService;
 
 
     @PostMapping("/send")
@@ -84,21 +85,16 @@ public class EmailRequestReceiverController {
             return emailResponseDto;
         }
 
-        if (!batchEmailRequestDto.getFrom().toString().split("@")[1].equals("hosterhero.com")){
-            emailResponseDto.setStatusCode(400);
-            emailResponseDto.setMessage("Invalid Domain");
-            return emailResponseDto;
-        }
-
         //Email Content
-        EmailTemplates emailTemplates =  emailTemplateService.getTemplate(batchEmailRequestDto.getTemplateId());
-        if (emailTemplates == null){
+
+        Template template =  redisService.getTemplateFromCustomId(MDC.get(AppHeaders.COMPANY_ID), batchEmailRequestDto.getTemplateId());
+        if (template == null){
             emailResponseDto.setStatusCode(400);
             emailResponseDto.setMessage("Invalid TemplateId");
             return emailResponseDto;
         }
 
-        emailBatchRequestReceiverService.process(batchEmailRequestDto, emailTemplates, zipFile);
+        emailBatchRequestReceiverService.process(batchEmailRequestDto, template, zipFile);
         emailResponseDto.setStatusCode(200);
         emailResponseDto.setMessage("Mail sent successfully");
 
