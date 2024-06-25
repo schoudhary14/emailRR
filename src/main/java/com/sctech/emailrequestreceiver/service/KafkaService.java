@@ -14,9 +14,7 @@ public class KafkaService {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     public void queueRequest(String topicName, EmailData message){
-        System.out.println("Sending to kafka : " + message);
         kafkaTemplate.send(topicName, message);
-        System.out.println("produced to kafka : " + message);
     }
 
 }

@@ -1,6 +1,5 @@
 package com.sctech.emailrequestreceiver.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-@Schema(hidden = true)
 public class EmailRequestBaseDto {
     @NotEmpty(message = "from is Empty")
     @NotNull(message = "from is NULL")

@@ -1,107 +1,62 @@
 package com.sctech.emailrequestreceiver.service;
 
-import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.dto.EmailRequestBatchDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
-import com.sctech.emailrequestreceiver.enums.CompanyType;
+import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
+import com.sctech.emailrequestreceiver.exceptions.InvalidRequestException;
 import com.sctech.emailrequestreceiver.model.EmailData;
 import com.sctech.emailrequestreceiver.model.Template;
-import com.sctech.emailrequestreceiver.util.EmailDynamicVariableReplace;
-import com.sctech.emailrequestreceiver.util.ZipFileHelper;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class EmailBatchRequestReceiverService {
+public class EmailBatchRequestReceiverService  extends AbstractEmailRequestReceiverService{
+
+    private static final Logger logger = LogManager.getLogger(DomainService.class);
 
     @Value("${email.api.queue.batchTopic}")
     private String requestTopic;
 
-    @Value("${email.api.queue.sandBox}")
-    private String sandboxRequestTopic;
+    public EmailResponseDto process(EmailRequestBatchDto batchEmailRequestDto, Template template, MultipartFile zipFile){
 
-    @Autowired
-    private EmailDynamicVariableReplace emailDynamicVariableReplace;
 
-    @Autowired
-    private KafkaService kafkaService;
+        EmailData emailDataEntity = createEmailDataEntity(batchEmailRequestDto.getFrom(), batchEmailRequestDto.getReplyTo()
+                , batchEmailRequestDto.getSubject(), template.getContent(), template.getContentType().toString()
+                , batchEmailRequestDto.getTrackOpens(), batchEmailRequestDto.getTrackLinks()
+                , batchEmailRequestDto.getGlobalDynamicSubject(), batchEmailRequestDto.getGlobalDynamicHTMLBody());
 
-    @Autowired
-    private CreditService creditService;
 
-    @Autowired
-    private ZipFileHelper zipFileHelper;
-
-    public void process(EmailRequestBatchDto batchEmailRequestDto, Template template, MultipartFile zipFile){
-
-        String htmlBody = template.getContent();
-
-        EmailData emailDataEntity = new EmailData();
-        //Request Meta
-        emailDataEntity.setCompanyId(MDC.get(AppHeaders.COMPANY_ID));
-        emailDataEntity.setClientChannelId(MDC.get(AppHeaders.COMPANY_CHANNEL_NAME));
-        emailDataEntity.setRequestMode("API");
-        emailDataEntity.setType(template.getContentType().toString());
-
-        //From
-        emailDataEntity.setFrom(batchEmailRequestDto.getFrom());
-
-        //Subject
-        String subject = batchEmailRequestDto.getSubject();
-
-        //Tracking Flags
-        EmailData.TrackingFlags trackingFlags = new EmailData.TrackingFlags();
-        emailDataEntity.setTrackingFlags(trackingFlags);
-        trackingFlags.setOpens(batchEmailRequestDto.getTrackOpens());
-        trackingFlags.setLinks(batchEmailRequestDto.getTrackLinks());
-
-        //Global
-        ////Subject
-        subject = emailDynamicVariableReplace.replace(subject, batchEmailRequestDto.getGlobalDynamicSubject());
-        ////Html Body
-        htmlBody = emailDynamicVariableReplace.replace(htmlBody, batchEmailRequestDto.getGlobalDynamicHTMLBody());
-
-        //Reply To (Optional)
-        if(batchEmailRequestDto.getReplyTo() != null && !batchEmailRequestDto.getReplyTo().isEmpty()){
-            emailDataEntity.setReplyTo(batchEmailRequestDto.getReplyTo());
-        }
-
+        String htmlBody = emailDataEntity.getContent();
+        String subject = emailDataEntity.getSubject();
+        List<EmailData> emailDataList = new ArrayList<>();
         for(EmailRequestSingleDto.Recipient singleTo : batchEmailRequestDto.getTo()) {
+            EmailData tmpEmailData = new EmailData(emailDataEntity);
             //To
-            emailDataEntity.setTo(singleTo.getEmail());
+            tmpEmailData.setTo(singleTo.getEmail());
 
             //Personalized
+            ////Body
+            tmpEmailData.setContent(emailDynamicVariableReplace.replace(htmlBody,singleTo.getDynamicHTMLBody()));
             ////Subject
-            subject = emailDynamicVariableReplace.replace(subject,singleTo.getDynamicSubject());
-            htmlBody = emailDynamicVariableReplace.replace(htmlBody,singleTo.getDynamicHTMLBody());
-            emailDataEntity.setContent(htmlBody);
-            emailDataEntity.setSubject(subject);
+            tmpEmailData.setSubject(emailDynamicVariableReplace.replace(subject,singleTo.getDynamicSubject()));
+
+            if (tmpEmailData.getContent().contains("{{") && tmpEmailData.getContent().contains("}}")){
+                logger.error("Dynamic variables are missing or invalid");
+                throw new InvalidRequestException("Dynamic variables are missing or invalid");
+            }
 
             //Attachment
-            List<EmailData.Attachment> emailDataAttachments = new ArrayList<>();
-            for (String fileName : singleTo.getAttachmentFilenames()) {
-                String fileContent = zipFileHelper.fileContentFromZip(fileName,zipFile);
-                EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
-                emailDataAttachment.setFileName(fileName);
-                emailDataAttachment.setContentType(zipFileHelper.getFileContentType(fileName));
-                emailDataAttachment.setContent(fileContent);
-                emailDataAttachments.add(emailDataAttachment);
-            }
-            emailDataEntity.setAttachment(emailDataAttachments);
-            //CompanyType.SANDBOX
-            if(MDC.get(AppHeaders.COMPANY_BILL_TYPE).equals(CompanyType.SANDBOX.name())){
-                System.out.println("sandbox");
-                kafkaService.queueRequest(sandboxRequestTopic, emailDataEntity);
-            }else{
-                System.out.println("sent");
-                kafkaService.queueRequest(requestTopic, emailDataEntity);
-            }
+            tmpEmailData.setAttachment(createAttachmentFromZip(zipFile, singleTo));
+            tmpEmailData.setCreatedAt(LocalDateTime.now());
+            emailDataList.add(tmpEmailData);
         }
+        return sendEmail(requestTopic, emailDataList);
     }
 }

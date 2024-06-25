@@ -53,6 +53,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ExceptionResponseDto> handleInvalidRequestException(InvalidRequestException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + ex.getMessage());
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ExceptionResponseDto> handleConstraintViolationException(ConstraintViolationException ex) {
         String details = ex.getConstraintViolations().stream()
@@ -66,9 +71,14 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND.value(), ErrorCodes.NOT_EXISTS, ErrorMessages.NOT_EXISTS + " : " + ex.getMessage());
     }
 
+    @ExceptionHandler(NotExistsException.class)
+    public ResponseEntity<ExceptionResponseDto> handleNotExistException(NotExistsException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.NOT_EXISTS, ErrorMessages.NOT_EXISTS + " : " + ex.getMessage());
+    }
+
 
     @ExceptionHandler(NoCreditsHandler.class)
-    public ResponseEntity<ExceptionResponseDto> handleUserNotExistsException(NoCreditsHandler ex, WebRequest request) {
+    public ResponseEntity<ExceptionResponseDto> handleNotCreditException(NoCreditsHandler ex, WebRequest request) {
         return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(), ErrorCodes.NO_CREDITS, ErrorMessages.NO_CREDITS);
     }
 

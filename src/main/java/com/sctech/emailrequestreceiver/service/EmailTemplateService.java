@@ -12,7 +12,6 @@ public class EmailTemplateService {
     private EmailTemplateRepository emailTemplateRepository;
 
     public Template getTemplate(String companyId, Integer templateId){
-        System.out.println("Template ID : " + templateId);
         return emailTemplateRepository.findByCompanyIdAndTemplateId(companyId, templateId);
     }
 }

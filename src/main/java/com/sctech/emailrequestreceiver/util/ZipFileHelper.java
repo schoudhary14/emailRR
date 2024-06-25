@@ -1,8 +1,11 @@
 package com.sctech.emailrequestreceiver.util;
 
+import com.sctech.emailrequestreceiver.exceptions.InvalidRequestException;
+import com.sctech.emailrequestreceiver.exceptions.NotExistsException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.FileNameMap;
@@ -13,9 +16,9 @@ import java.util.zip.ZipInputStream;
 
 @Component
 public class ZipFileHelper {
+    private static final Logger logger = LogManager.getLogger(ZipFileHelper.class);
     public String fileContentFromZip(String desiredFileName, MultipartFile zipFile) {
         try {
-            System.out.println("Requested File Name : " + desiredFileName);
             // Create a ZipInputStream to read the uploaded zip file
             ZipInputStream zipInputStream = new ZipInputStream(zipFile.getInputStream());
 
@@ -23,7 +26,6 @@ public class ZipFileHelper {
             ZipEntry entry;
             while ((entry = zipInputStream.getNextEntry()) != null) {
                 // Check if the entry matches the desired file name
-                System.out.println("Zip File Name : " + entry.getName());
                 if (entry.getName().equals(desiredFileName)) {
                     // Create a ByteArrayOutputStream to hold the contents of the entry
                     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -37,7 +39,6 @@ public class ZipFileHelper {
 
                     // Convert the contents of the entry to a base64-encoded string
                     String base64Data = Base64.getEncoder().encodeToString(outputStream.toByteArray());
-                    System.out.println("Content Base64" + base64Data);
 
                     // Close the ZipInputStream
                     zipInputStream.close();
@@ -46,10 +47,10 @@ public class ZipFileHelper {
                     return base64Data;
                 }
             }
-            return "NotFound";
+            throw new NotExistsException("File not found in the zip file");
         } catch (IOException e) {
-            System.out.println("Error : " + e.getMessage());
-            return "Error";
+            logger.error("Error reading zip file : " + e.getMessage());
+            throw new InvalidRequestException("Invalid Zip File");
         }
     }
 
