@@ -30,7 +30,7 @@ public class EmailSingleRequestReceiverService extends AbstractEmailRequestRecei
                 , emailRequestPayload.getTrackOpens(), emailRequestPayload.getTrackLinks()
                 , emailRequestPayload.getGlobalDynamicSubject(), emailRequestPayload.getGlobalDynamicHTMLBody());
 
-
+        emailDataEntity.setRequestSource("single");
         //Attachments
         if (emailRequestPayload.getAttachments() != null) {
             emailDataEntity.setAttachment(createAttachmentFromContent(emailRequestPayload));
@@ -63,7 +63,7 @@ public class EmailSingleRequestReceiverService extends AbstractEmailRequestRecei
             emailDataList.add(tmpEmailData);
             System.out.println("EmailData List : " + emailDataList);
         }
-        return sendEmail(requestTopic, emailDataList);
+        return queueEmail(requestTopic, emailDataList);
     }
 
 }

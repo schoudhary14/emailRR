@@ -2,11 +2,11 @@ package com.sctech.emailrequestreceiver.service;
 
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.dto.EmailRequestBatchDto;
+import com.sctech.emailrequestreceiver.dto.EmailRequestMultiRcptDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
 import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
 import com.sctech.emailrequestreceiver.enums.CompanyType;
 import com.sctech.emailrequestreceiver.enums.EmailContentType;
-import com.sctech.emailrequestreceiver.exceptions.NoCreditsHandler;
 import com.sctech.emailrequestreceiver.exceptions.NotExistsException;
 import com.sctech.emailrequestreceiver.model.EmailData;
 import com.sctech.emailrequestreceiver.util.EmailDynamicVariableReplace;
@@ -44,7 +44,7 @@ public class AbstractEmailRequestReceiverService {
     @Autowired
     private DomainService domainService;
 
-    protected EmailResponseDto sendEmail(String requestTopic, List<EmailData> emailDataList) {
+    protected EmailResponseDto queueEmail(String requestTopic, List<EmailData> emailDataList) {
         try {
             String companyBillType = MDC.get(AppHeaders.COMPANY_BILL_TYPE);
             String topic = companyBillType.equals(CompanyType.SANDBOX.name()) ? sandboxRequestTopic : requestTopic;
@@ -96,6 +96,17 @@ public class AbstractEmailRequestReceiverService {
             EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
             emailDataAttachment.setFileName(attachment.getFilename());
             emailDataAttachment.setContentType(attachment.getContentType());
+            emailDataAttachment.setContent(attachment.getContent());
+            emailDataAttachmentList.add(emailDataAttachment);
+        }
+        return emailDataAttachmentList;
+    }
+
+    protected List<EmailData.Attachment> createAttachmentFromContent(EmailRequestMultiRcptDto emailRequestPayload) {
+        List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
+        for (EmailRequestMultiRcptDto.Attachment attachment : emailRequestPayload.getAttachments()){
+            EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
+            emailDataAttachment.setFileName(attachment.getFilename());
             emailDataAttachment.setContent(attachment.getContent());
             emailDataAttachmentList.add(emailDataAttachment);
         }

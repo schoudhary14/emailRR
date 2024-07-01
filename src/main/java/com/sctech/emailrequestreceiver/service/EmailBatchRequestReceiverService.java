@@ -32,6 +32,8 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
                 , batchEmailRequestDto.getTrackOpens(), batchEmailRequestDto.getTrackLinks()
                 , batchEmailRequestDto.getGlobalDynamicSubject(), batchEmailRequestDto.getGlobalDynamicHTMLBody());
 
+        emailDataEntity.setRequestSource("batch");
+        emailDataEntity.setFromName(batchEmailRequestDto.getSenderName());
 
         String htmlBody = emailDataEntity.getContent();
         String subject = emailDataEntity.getSubject();
@@ -57,6 +59,6 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
             tmpEmailData.setCreatedAt(LocalDateTime.now());
             emailDataList.add(tmpEmailData);
         }
-        return sendEmail(requestTopic, emailDataList);
+        return queueEmail(requestTopic, emailDataList);
     }
 }

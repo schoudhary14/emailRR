@@ -3,14 +3,12 @@ package com.sctech.emailrequestreceiver.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.dto.EmailRequestBatchDto;
+import com.sctech.emailrequestreceiver.dto.EmailRequestMultiRcptDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
 import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
 import com.sctech.emailrequestreceiver.exceptions.InvalidRequestException;
 import com.sctech.emailrequestreceiver.model.Template;
-import com.sctech.emailrequestreceiver.service.CreditService;
-import com.sctech.emailrequestreceiver.service.EmailBatchRequestReceiverService;
-import com.sctech.emailrequestreceiver.service.EmailSingleRequestReceiverService;
-import com.sctech.emailrequestreceiver.service.RedisService;
+import com.sctech.emailrequestreceiver.service.*;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +44,9 @@ public class EmailRequestReceiverController {
     private EmailBatchRequestReceiverService emailBatchRequestReceiverService;
 
     @Autowired
+    private EmailMultiRcptRequestReceiverService emailMultiRcptRequestReceiverService;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
@@ -60,7 +61,6 @@ public class EmailRequestReceiverController {
                                          @Valid @RequestHeader("x-apikey") String apiKey,
                                          BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
-        System.out.println("Request : " + emailRequestPayload);
         if(emailRequestPayload.getTo().size() > emailApiRequestLimit){
             throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
         }
@@ -129,4 +129,35 @@ public class EmailRequestReceiverController {
         }
     }
 
+    @PostMapping("/multircpt/send")
+    public ResponseEntity<EmailResponseDto>  emailMultiRcptRequest(@Valid @RequestBody EmailRequestMultiRcptDto emailRequestPayload,
+                                                   @RequestHeader("x-apikey") String apiKey,
+                                                   BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+
+        EmailResponseDto emailResponseDto = new EmailResponseDto();
+        try{
+
+            Long countOfRecipients = (long) emailRequestPayload.getTo().size();
+            if(emailRequestPayload.getCc() != null){
+                countOfRecipients = countOfRecipients + emailRequestPayload.getCc().size();
+            }
+
+            if (emailRequestPayload.getBcc() != null){
+                countOfRecipients = countOfRecipients + emailRequestPayload.getBcc().size();
+            }
+            creditService.isBalanceAvailable(countOfRecipients);
+
+            emailResponseDto = emailMultiRcptRequestReceiverService.process(emailRequestPayload);
+            return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error : ", e);
+            emailResponseDto.setStatusCode(500);
+            emailResponseDto.setMessage("Internal Server Error");
+            return new ResponseEntity<>(emailResponseDto, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
     }
+
+
+
+}

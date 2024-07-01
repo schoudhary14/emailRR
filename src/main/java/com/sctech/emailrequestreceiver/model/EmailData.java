@@ -21,8 +21,8 @@ public class EmailData {
     private String from;
     private String replyTo;
     private String to;
-    private String[] bcc;
-    private String[] cc;
+    private String bcc;
+    private String cc;
     private String subject;
     private String content;
     private EmailContentType type;
@@ -32,6 +32,7 @@ public class EmailData {
     private String clientChannelId;
     private String requestMode;
     private String requestId;
+    private String requestSource;
     private EmailVendorResponse vendorResponse;
     private LocalDateTime createdAt;
     private String createdBy;
@@ -48,8 +49,8 @@ public class EmailData {
         this.from = other.from;
         this.replyTo = other.replyTo;
         this.to = other.to;
-        this.bcc = other.bcc != null ? other.bcc.clone() : null;
-        this.cc = other.cc != null ? other.cc.clone() : null;
+        this.bcc = other.bcc != null ? other.bcc : null;
+        this.cc = other.cc != null ? other.cc : null;
         this.subject = other.subject;
         this.content = other.content;
         this.type = other.type;
@@ -64,6 +65,7 @@ public class EmailData {
         this.createdBy = other.createdBy;
         this.updatedAt = other.updatedAt;
         this.updatedBy = other.updatedBy;
+        this.requestSource = other.requestSource;
     }
 
     @Data
