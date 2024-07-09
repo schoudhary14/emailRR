@@ -13,7 +13,7 @@ public class Template {
     @Id
     private String id;
     private String companyId;
-    private Integer templateId;
+    private Long templateId;
     private String name;
     private String content;
     private EmailContentType contentType;

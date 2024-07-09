@@ -10,4 +10,8 @@ public class AppHeaders {
     public static String COMPANY_BILL_TYPE = "entityType";
     public static String ENTITY_CREDITS = "entityCredits";
     public static String COMPANY_CHANNEL_NAME = "entityChannelName";
+    public static String COMPANY_NAME = "entityName";
+    public static String WARMUP_ENABLED = "warmupEnabled";
+    public static String WARMP_LIMIT = "warmupLimit";
+    public static String WARMUP_LIMIT_UNIT = "warmupLimitUnit";
 }

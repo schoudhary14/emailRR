@@ -25,6 +25,7 @@ public class EmailData {
     private String cc;
     private String subject;
     private String content;
+    private Long templateId;
     private EmailContentType type;
     private List<Attachment> attachment;
     private String status;

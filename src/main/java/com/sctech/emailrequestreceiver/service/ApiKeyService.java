@@ -2,7 +2,6 @@ package com.sctech.emailrequestreceiver.service;
 
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.enums.EntityStatus;
-import com.sctech.emailrequestreceiver.exceptions.InvalidRequestException;
 import com.sctech.emailrequestreceiver.exceptions.NoCreditsHandler;
 import com.sctech.emailrequestreceiver.model.Company;
 import com.sctech.emailrequestreceiver.security.ApiKeyAuth;
@@ -37,55 +36,61 @@ public class ApiKeyService {
     private static final String API_KEY_REGEX = "^[a-zA-Z0-9]*$";
 
     public Optional<Authentication> validateApiKey(HttpServletRequest request) throws IOException {
-            String requestApiKey = request.getHeader(AppHeaders.API_HEADER);
+        String requestApiKey = request.getHeader(AppHeaders.API_HEADER);
 
-            if (requestApiKey == null) {
-                logger.warn("requirement did not matched : provided key is null");
+        if (requestApiKey == null) {
+            logger.warn("requirement did not matched : provided key is null");
+            return Optional.empty();
+        } else if (requestApiKey.length() < KEY_LENGTH || requestApiKey.length() > MAX_API_KEY_LENGTH || !requestApiKey.matches(API_KEY_REGEX)) {
+            logger.warn("requirement did not matched : provided key : " + requestApiKey + " and length : " + requestApiKey.length());
+            return Optional.empty();
+        }
+
+        String remoteAddr = request.getRemoteAddr();
+        Company company = redisService.getCompanyFromApiKey(requestApiKey);
+
+        if (company == null) {
+            logger.warn("requirement did not matched : API Key not matched");
+            return Optional.empty();
+        } else if (company.getStatus().equals(EntityStatus.INACTIVE)) {
+            logger.warn("requirement did not matched : Company is inactive");
+            return Optional.empty();
+        }
+
+        List<Company.ApiKey> optionalApiKeyEntities = company.getApiKeys();
+        Company.ApiKey apiKeyEntity = null;
+        for (Company.ApiKey optionalApiKeyEntity : optionalApiKeyEntities) {
+            if (optionalApiKeyEntity.getKey().equals(requestApiKey)) {
+                apiKeyEntity = optionalApiKeyEntity;
+                break;
+            }
+        }
+
+        if (apiKeyEntity != null) {
+            if (apiKeyEntity.getStatus().equals(EntityStatus.INACTIVE) || (apiKeyEntity.getIpAddress() != null && !Arrays.asList(apiKeyEntity.getIpAddress()).contains(remoteAddr))) {
+                logger.warn("requirement did not matched : API Key is inactive or ip address mismatched");
                 return Optional.empty();
-            } else if (requestApiKey.length() < KEY_LENGTH || requestApiKey.length() > MAX_API_KEY_LENGTH || !requestApiKey.matches(API_KEY_REGEX)) {
-                logger.warn("requirement did not matched : provided key : " + requestApiKey + " and length : " + requestApiKey.length());
-                return Optional.empty();
             }
+        }
 
-            String remoteAddr = request.getRemoteAddr();
-            Company company = redisService.getCompanyFromApiKey(requestApiKey);
+        MDC.put(AppHeaders.WARMUP_ENABLED, String.valueOf(company.getWarmupEnabled()));
+        if(company.getWarmupEnabled()) {
+            MDC.put(AppHeaders.WARMP_LIMIT, company.getWarmupLimit().toString());
+            MDC.put(AppHeaders.WARMUP_LIMIT_UNIT, company.getWarmupLimitUnit());
+        }
 
-            if (company == null) {
-                logger.warn("requirement did not matched : API Key not matched");
-                return Optional.empty();
-            } else if (company.getStatus().equals(EntityStatus.INACTIVE)) {
-                logger.warn("requirement did not matched : Company is inactive");
-                return Optional.empty();
-            }
+        if (redisService.isWarmupLimitReached(company.getId())) {
+            logger.warn("requirement did not matched : Global limit reached");
+            throw new NoCreditsHandler("Daily Limit Reached");
+        }
 
+        MDC.put(AppHeaders.COMPANY_ID, company.getId());
+        MDC.put(AppHeaders.COMPANY_BILL_TYPE, company.getBillType().name());
+        MDC.put(AppHeaders.COMPANY_CHANNEL_NAME, apiKeyEntity.getName());
+        MDC.put(AppHeaders.ENTITY_CREDITS, String.valueOf(company.getCredits()));
+        MDC.put(AppHeaders.COMPANY_NAME,company.getName());
 
-            List<Company.ApiKey> optionalApiKeyEntities = company.getApiKeys();
-            Company.ApiKey apiKeyEntity = null;
-            for (Company.ApiKey optionalApiKeyEntity : optionalApiKeyEntities) {
-                if (optionalApiKeyEntity.getKey().equals(requestApiKey)) {
-                    apiKeyEntity = optionalApiKeyEntity;
-                    break;
-                }
-            }
-
-            if (apiKeyEntity != null) {
-                if (apiKeyEntity.getStatus().equals(EntityStatus.INACTIVE) || (apiKeyEntity.getIpAddress() != null && !Arrays.asList(apiKeyEntity.getIpAddress()).contains(remoteAddr))) {
-                    logger.warn("requirement did not matched : API Key is inactive or ip address mismatched");
-                    return Optional.empty();
-                }
-            }
-
-            if (redisService.isGlobalLimitReached(company.getId())) {
-                logger.warn("requirement did not matched : Global limit reached");
-                throw new NoCreditsHandler("Daily Limit Reached");
-            }
-
-            MDC.put(AppHeaders.COMPANY_ID, company.getId());
-            MDC.put(AppHeaders.COMPANY_BILL_TYPE, company.getBillType().name());
-            MDC.put(AppHeaders.COMPANY_CHANNEL_NAME, apiKeyEntity.getName());
-            MDC.put(AppHeaders.ENTITY_CREDITS, String.valueOf(company.getCredits()));
-
-            return Optional.of(new ApiKeyAuth(requestApiKey, AuthorityUtils.NO_AUTHORITIES));
+        return Optional.of(new ApiKeyAuth(requestApiKey, AuthorityUtils.NO_AUTHORITIES));
     }
 
 

@@ -1,16 +1,23 @@
 package com.sctech.emailrequestreceiver.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.model.AppConfig;
 import com.sctech.emailrequestreceiver.model.Company;
 import com.sctech.emailrequestreceiver.model.Template;
-import com.sctech.emailrequestreceiver.repository.AppConfigRepository;
+import com.sctech.emailrequestreceiver.model.WarmupLimitCounter;
+import com.sctech.emailrequestreceiver.repository.WarmupLimitCounterRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -25,7 +32,10 @@ public class RedisService {
     private EmailTemplateService emailTemplateService;
     @Autowired
     private AppConfigService appConfigService;
-
+    @Autowired
+    private WarmupLimitCounterRepository warmupLimitCounterRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private void save(String key, Object value) {
         try{
@@ -67,7 +77,11 @@ public class RedisService {
     private Object hget(String parentKey, String key) {
         try {
             HashOperations<String, String, Object> hashOperations = redisTemplate.opsForHash();
-            return hashOperations.get(parentKey, key);
+            Object data = hashOperations.get(parentKey, key);
+            if (data instanceof Map) {
+                return objectMapper.convertValue(data, Company.class);
+            }
+            return null;
         } catch (Exception e) {
             logger.error("Error while retrieving from cache  : " + e.getMessage());
             return null;
@@ -103,25 +117,28 @@ public class RedisService {
         return template;
     }
 
-    public Boolean isGlobalLimitReached(String companyId) {
-        Long companyGlobalLimitCounter = (Long) hget("globalLimitCounter", companyId);
-        Long appGlobalLimit = (Long) hget("appConfig", "globalLimit");
-
-        if (companyGlobalLimitCounter == null) {
-            companyGlobalLimitCounter = appConfigService.globalLimitCounter(companyId);
-            hsave("globalLimitCounter", companyId, companyGlobalLimitCounter, 24L, TimeUnit.HOURS);
+    public Boolean isWarmupLimitReached(String companyId) {
+        if(MDC.get(AppHeaders.WARMUP_ENABLED) == null || !MDC.get(AppHeaders.WARMUP_ENABLED).equals("true")){
+            System.out.println("warmup disabled : " + MDC.get(AppHeaders.WARMUP_ENABLED));
+            return false;
         }
 
-        if(appGlobalLimit == null) {
-            AppConfig appConfig = appConfigService.getByKey("globalLimit");
-            if (appConfig == null) {
-                return true;
+        Integer companyWarmupLimitCounter = (Integer) hget("warmupLimitCounter", companyId);
+        Integer companyWarmupLimit = Integer.valueOf(MDC.get(AppHeaders.WARMP_LIMIT));
+
+        if (companyWarmupLimitCounter == null) {
+            WarmupLimitCounter warmupLimitCounter = warmupLimitCounterRepository.findByCompanyIdAndDate(companyId, LocalDate.now());
+            if (warmupLimitCounter == null){
+                companyWarmupLimitCounter = 0;
+            }else {
+                companyWarmupLimitCounter = warmupLimitCounter.getCounter();
+                if(companyWarmupLimitCounter == null){
+                    companyWarmupLimitCounter = 0;
+                }
             }
-            appGlobalLimit = Long.valueOf(appConfig.getValue());
-            hsave("appConfig", "globalLimit", appConfig);
+            hsave("warmupLimitCounter", companyId, companyWarmupLimitCounter, 24L, TimeUnit.HOURS);
         }
-
-        return companyGlobalLimitCounter >= appGlobalLimit;
+        return companyWarmupLimitCounter >= companyWarmupLimit;
     }
 
 }

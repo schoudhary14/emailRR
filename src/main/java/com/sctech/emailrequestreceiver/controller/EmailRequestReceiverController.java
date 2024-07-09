@@ -22,7 +22,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -55,7 +54,6 @@ public class EmailRequestReceiverController {
     @Autowired
     private CreditService creditService;
 
-
     @PostMapping("/send")
     public ResponseEntity<EmailResponseDto> emailRequest(@Valid @RequestBody EmailRequestSingleDto emailRequestPayload,
                                          @Valid @RequestHeader("x-apikey") String apiKey,
@@ -64,7 +62,6 @@ public class EmailRequestReceiverController {
         if(emailRequestPayload.getTo().size() > emailApiRequestLimit){
             throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
         }
-
         Long countOfRecipients = (long) emailRequestPayload.getTo().size();
         creditService.isBalanceAvailable(countOfRecipients);
 
@@ -99,7 +96,6 @@ public class EmailRequestReceiverController {
                 if(batchEmailRequestDto.getTo().size() > emailApiRequestLimit){
                     throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
                 }
-
                 Long countOfRecipients = (long) batchEmailRequestDto.getTo().size();
                 creditService.isBalanceAvailable(countOfRecipients);
             }catch (Exception e){
@@ -108,16 +104,13 @@ public class EmailRequestReceiverController {
                 logger.error("Failed to parse request : " + e.getMessage());
                 return new ResponseEntity<>(emailResponseDto, HttpStatus.BAD_REQUEST);
             }
-
             //Email Content
-
             Template template =  redisService.getTemplateFromCustomId(MDC.get(AppHeaders.COMPANY_ID), batchEmailRequestDto.getTemplateId());
             if (template == null){
                 emailResponseDto.setStatusCode(400);
                 emailResponseDto.setMessage("Invalid TemplateId");
                 return new ResponseEntity<>(emailResponseDto, HttpStatus.BAD_REQUEST);
             }
-
             emailResponseDto = emailBatchRequestReceiverService.process(batchEmailRequestDto, template, zipFile);
             return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
         } catch (Exception e) {
@@ -136,7 +129,6 @@ public class EmailRequestReceiverController {
 
         EmailResponseDto emailResponseDto = new EmailResponseDto();
         try{
-
             Long countOfRecipients = (long) emailRequestPayload.getTo().size();
             if(emailRequestPayload.getCc() != null){
                 countOfRecipients = countOfRecipients + emailRequestPayload.getCc().size();
@@ -146,7 +138,6 @@ public class EmailRequestReceiverController {
                 countOfRecipients = countOfRecipients + emailRequestPayload.getBcc().size();
             }
             creditService.isBalanceAvailable(countOfRecipients);
-
             emailResponseDto = emailMultiRcptRequestReceiverService.process(emailRequestPayload);
             return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
         } catch (Exception e) {
@@ -155,9 +146,6 @@ public class EmailRequestReceiverController {
             emailResponseDto.setMessage("Internal Server Error");
             return new ResponseEntity<>(emailResponseDto, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
-
-
 
 }

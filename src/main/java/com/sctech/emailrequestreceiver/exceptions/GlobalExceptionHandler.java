@@ -40,7 +40,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ExceptionResponseDto> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex,
                                                                                  WebRequest request) {
-
         // Customize error message based on the specific exception details
         String fieldName = ex.getName();
         String invalidValue = ex.getValue().toString();
@@ -75,7 +74,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ExceptionResponseDto> handleNotExistException(NotExistsException ex) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.NOT_EXISTS, ErrorMessages.NOT_EXISTS + " : " + ex.getMessage());
     }
-
 
     @ExceptionHandler(NoCreditsHandler.class)
     public ResponseEntity<ExceptionResponseDto> handleNotCreditException(NoCreditsHandler ex, WebRequest request) {

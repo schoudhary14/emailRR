@@ -43,9 +43,7 @@ public class EmailSingleRequestReceiverService extends AbstractEmailRequestRecei
         for(EmailRequestSingleDto.Recipient singleTo : emailRequestPayload.getTo()) {
             EmailData tmpEmailData = new EmailData(emailDataEntity);
             //To
-            System.out.println("New To : " + singleTo);
             tmpEmailData.setTo(singleTo.getEmail());
-            System.out.println("After Setting : " + tmpEmailData.getTo());
 
             //Personalized
             ////Body
@@ -61,7 +59,6 @@ public class EmailSingleRequestReceiverService extends AbstractEmailRequestRecei
 
             tmpEmailData.setCreatedAt(LocalDateTime.now());
             emailDataList.add(tmpEmailData);
-            System.out.println("EmailData List : " + emailDataList);
         }
         return queueEmail(requestTopic, emailDataList);
     }

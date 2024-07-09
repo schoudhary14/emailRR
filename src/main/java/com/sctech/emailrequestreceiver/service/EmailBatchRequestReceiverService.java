@@ -33,6 +33,7 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
                 , batchEmailRequestDto.getGlobalDynamicSubject(), batchEmailRequestDto.getGlobalDynamicHTMLBody());
 
         emailDataEntity.setRequestSource("batch");
+        emailDataEntity.setTemplateId(template.getTemplateId());
         emailDataEntity.setFromName(batchEmailRequestDto.getSenderName());
 
         String htmlBody = emailDataEntity.getContent();
