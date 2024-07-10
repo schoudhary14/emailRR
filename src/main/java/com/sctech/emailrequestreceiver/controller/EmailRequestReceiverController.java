@@ -7,6 +7,7 @@ import com.sctech.emailrequestreceiver.dto.EmailRequestMultiRcptDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
 import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
 import com.sctech.emailrequestreceiver.exceptions.InvalidRequestException;
+import com.sctech.emailrequestreceiver.exceptions.WarmupRequestException;
 import com.sctech.emailrequestreceiver.model.Template;
 import com.sctech.emailrequestreceiver.service.*;
 import jakarta.validation.Valid;
@@ -65,16 +66,8 @@ public class EmailRequestReceiverController {
         Long countOfRecipients = (long) emailRequestPayload.getTo().size();
         creditService.isBalanceAvailable(countOfRecipients);
 
-        try {
-            EmailResponseDto emailResponseDto = emailSingleRequestReceiverService.process(emailRequestPayload, apiKey);
-            return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
-        }catch (Exception e) {
-            logger.error("Error : ", e);
-            EmailResponseDto emailResponseDto = new EmailResponseDto();
-            emailResponseDto.setStatusCode(500);
-            emailResponseDto.setMessage("Internal Server Error");
-            return new ResponseEntity<>(emailResponseDto, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        EmailResponseDto emailResponseDto = emailSingleRequestReceiverService.process(emailRequestPayload, apiKey);
+        return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
     }
 
     @PostMapping(value = "/batch/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -82,7 +75,6 @@ public class EmailRequestReceiverController {
                                                               @RequestPart("zipFile") MultipartFile zipFile,
                                                               @RequestHeader("x-apikey") String apiKey, BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
-        try{
             EmailResponseDto emailResponseDto = new EmailResponseDto();
             if (zipFile.isEmpty()) {
                 emailResponseDto.setStatusCode(400);
@@ -113,13 +105,6 @@ public class EmailRequestReceiverController {
             }
             emailResponseDto = emailBatchRequestReceiverService.process(batchEmailRequestDto, template, zipFile);
             return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Error : ", e);
-            EmailResponseDto emailResponseDto = new EmailResponseDto();
-            emailResponseDto.setStatusCode(500);
-            emailResponseDto.setMessage("Internal Server Error");
-            return new ResponseEntity<>(emailResponseDto, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
 
     @PostMapping("/multircpt/send")
@@ -128,7 +113,7 @@ public class EmailRequestReceiverController {
                                                    BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
         EmailResponseDto emailResponseDto = new EmailResponseDto();
-        try{
+
             Long countOfRecipients = (long) emailRequestPayload.getTo().size();
             if(emailRequestPayload.getCc() != null){
                 countOfRecipients = countOfRecipients + emailRequestPayload.getCc().size();
@@ -140,12 +125,6 @@ public class EmailRequestReceiverController {
             creditService.isBalanceAvailable(countOfRecipients);
             emailResponseDto = emailMultiRcptRequestReceiverService.process(emailRequestPayload);
             return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Error : ", e);
-            emailResponseDto.setStatusCode(500);
-            emailResponseDto.setMessage("Internal Server Error");
-            return new ResponseEntity<>(emailResponseDto, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
 
 }

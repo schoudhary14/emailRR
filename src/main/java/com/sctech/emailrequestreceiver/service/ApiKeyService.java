@@ -3,6 +3,7 @@ package com.sctech.emailrequestreceiver.service;
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.enums.EntityStatus;
 import com.sctech.emailrequestreceiver.exceptions.NoCreditsHandler;
+import com.sctech.emailrequestreceiver.exceptions.WarmupRequestException;
 import com.sctech.emailrequestreceiver.model.Company;
 import com.sctech.emailrequestreceiver.security.ApiKeyAuth;
 import jakarta.servlet.http.HttpServletRequest;
@@ -79,15 +80,10 @@ public class ApiKeyService {
             MDC.put(AppHeaders.WARMUP_LIMIT_UNIT, company.getWarmupLimitUnit());
         }
 
-        if (redisService.isWarmupLimitReached(company.getId())) {
-            logger.warn("requirement did not matched : Global limit reached");
-            throw new NoCreditsHandler("Daily Limit Reached");
-        }
-
         MDC.put(AppHeaders.COMPANY_ID, company.getId());
         MDC.put(AppHeaders.COMPANY_BILL_TYPE, company.getBillType().name());
         MDC.put(AppHeaders.COMPANY_CHANNEL_NAME, apiKeyEntity.getName());
-        MDC.put(AppHeaders.ENTITY_CREDITS, String.valueOf(company.getCredits()));
+        MDC.put(AppHeaders.ENTITY_CREDITS, String.valueOf(redisService.getCredits(company.getId())));
         MDC.put(AppHeaders.COMPANY_NAME,company.getName());
 
         return Optional.of(new ApiKeyAuth(requestApiKey, AuthorityUtils.NO_AUTHORITIES));

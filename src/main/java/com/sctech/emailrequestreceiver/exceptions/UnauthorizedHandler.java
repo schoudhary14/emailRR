@@ -21,12 +21,12 @@ public class UnauthorizedHandler implements AuthenticationEntryPoint {
             throws IOException, ServletException {
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
         ExceptionResponseDto exceptionResponseDto = new ExceptionResponseDto();
-        exceptionResponseDto.setStatusCode(HttpServletResponse.SC_UNAUTHORIZED);
-        exceptionResponseDto.setErrorCode("UNAUTHORIZED");
-        exceptionResponseDto.setMessage("Unauthorized");
+        exceptionResponseDto.setStatusCode(HttpServletResponse.SC_FORBIDDEN);
+        exceptionResponseDto.setErrorCode("Unauthorized");
+        exceptionResponseDto.setMessage("You are not authorized to access this resource.");
 
         // Convert the DTO to JSON
         ObjectMapper objectMapper = new ObjectMapper();

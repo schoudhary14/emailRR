@@ -8,6 +8,7 @@ import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
 import com.sctech.emailrequestreceiver.enums.CompanyType;
 import com.sctech.emailrequestreceiver.enums.EmailContentType;
 import com.sctech.emailrequestreceiver.exceptions.NotExistsException;
+import com.sctech.emailrequestreceiver.exceptions.WarmupRequestException;
 import com.sctech.emailrequestreceiver.model.EmailData;
 import com.sctech.emailrequestreceiver.util.EmailDynamicVariableReplace;
 import com.sctech.emailrequestreceiver.util.ZipFileHelper;
@@ -43,6 +44,9 @@ public class AbstractEmailRequestReceiverService {
 
     @Autowired
     private DomainService domainService;
+
+    @Autowired
+    private RedisService redisService;
 
     protected EmailResponseDto queueEmail(String requestTopic, List<EmailData> emailDataList) {
         try {
@@ -127,6 +131,12 @@ public class AbstractEmailRequestReceiverService {
 
         String companyId = MDC.get(AppHeaders.COMPANY_ID);
         isDomainVerified(companyId, from.toString().split("@")[1]);
+
+        if (redisService.isWarmupLimitReached(companyId)) {
+            logger.warn("requirement did not matched : Global limit reached");
+            throw new WarmupRequestException("Warmup Limit Reached");
+        }
+
 
         EmailData emailDataEntity = new EmailData();
         String clientChannelId = MDC.get(AppHeaders.COMPANY_CHANNEL_NAME);

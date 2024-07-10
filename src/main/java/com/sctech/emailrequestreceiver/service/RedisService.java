@@ -74,12 +74,12 @@ public class RedisService {
         }
     }
 
-    private Object hget(String parentKey, String key) {
+    private <T> T hget(String parentKey, String key, Class<T> customClass) {
         try {
             HashOperations<String, String, Object> hashOperations = redisTemplate.opsForHash();
             Object data = hashOperations.get(parentKey, key);
             if (data instanceof Map) {
-                return objectMapper.convertValue(data, Company.class);
+                return objectMapper.convertValue(data, customClass);
             }
             return null;
         } catch (Exception e) {
@@ -94,7 +94,7 @@ public class RedisService {
 
     public Company getCompanyFromApiKey(String apiKey) {
         Company company = null;
-        company = (Company) hget("company",apiKey);
+        company = hget("company",apiKey, Company.class);
         if(company == null) {
             company = companyService.getApiKeyDetailsByKey(apiKey);
             if(company != null){
@@ -106,7 +106,7 @@ public class RedisService {
 
     public Template getTemplateFromCustomId(String companyId, Integer templateId) {
         Template template = null;
-        template = (Template) hget("template", companyId+templateId);
+        template = hget("template", companyId+templateId, Template.class);
 
         if(template == null) {
             template =  emailTemplateService.getTemplate(companyId, templateId);
@@ -123,7 +123,7 @@ public class RedisService {
             return false;
         }
 
-        Integer companyWarmupLimitCounter = (Integer) hget("warmupLimitCounter", companyId);
+        Integer companyWarmupLimitCounter = hget("warmupLimitCounter", companyId, Integer.class);
         Integer companyWarmupLimit = Integer.valueOf(MDC.get(AppHeaders.WARMP_LIMIT));
 
         if (companyWarmupLimitCounter == null) {
@@ -139,6 +139,16 @@ public class RedisService {
             hsave("warmupLimitCounter", companyId, companyWarmupLimitCounter, 24L, TimeUnit.HOURS);
         }
         return companyWarmupLimitCounter >= companyWarmupLimit;
+    }
+
+    public Long getCredits(String companyId){
+        Long availableCredits = hget("credits", companyId, Long.class);
+        if(availableCredits == null){
+            Company company = companyService.getDetail(companyId);
+            availableCredits = company.getCredits();
+            hsave("credits", companyId, availableCredits);
+        }
+        return availableCredits;
     }
 
 }

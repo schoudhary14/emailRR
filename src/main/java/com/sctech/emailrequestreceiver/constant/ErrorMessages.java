@@ -11,5 +11,6 @@ public class ErrorMessages {
     public static String NOT_EXISTS = "Not found";
     public static String FORBIDDEN = "Access forbidden";
     public static String NO_CREDITS = "No credits balance available" ;
+    public static String WARMUP_LIMIT = "Warmup limit reached for the day";
 
 }

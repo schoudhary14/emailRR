@@ -25,8 +25,6 @@ public class Company {
     private Boolean warmupEnabled;
     private Integer warmupLimit;
     private String warmupLimitUnit;
-    private LocalDate warmupStartDate;
-    private LocalDate warmupEndDate;
     private List<ApiKey> apiKeys;
     private LocalDateTime createdAt;
     private String createdBy;

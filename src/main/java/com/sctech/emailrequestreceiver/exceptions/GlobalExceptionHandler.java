@@ -57,6 +57,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + ex.getMessage());
     }
 
+    @ExceptionHandler(WarmupRequestException.class)
+    public ResponseEntity<ExceptionResponseDto> handleWarmupRequestException(WarmupRequestException ex) {
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(), ErrorCodes.WARMUP_LIMIT, ErrorMessages.WARMUP_LIMIT);
+    }
+
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ExceptionResponseDto> handleConstraintViolationException(ConstraintViolationException ex) {
         String details = ex.getConstraintViolations().stream()

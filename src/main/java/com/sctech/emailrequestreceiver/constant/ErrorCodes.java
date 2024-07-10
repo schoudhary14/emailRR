@@ -11,5 +11,6 @@ public class ErrorCodes {
     public static String NOT_EXISTS = "NotFound";
     public static String FORBIDDEN = "Forbidden";
     public static String NO_CREDITS = "NoCredits" ;
+    public static String WARMUP_LIMIT = "WarmupLimitReached";
 
 }
