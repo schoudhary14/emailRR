@@ -16,7 +16,7 @@ public class KafkaService {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     public void queueRequest(String topicName, EmailData message){
-        String dynamicTopic = topicName + "_" + MDC.get(AppHeaders.COMPANY_ID) + "_" + MDC.get(AppHeaders.COMPANY_CHANNEL_NAME);
+        String dynamicTopic = topicName + "_" + MDC.get(AppHeaders.COMPANY_ID) + "_" + message.getRequestMode();
         kafkaTemplate.send(dynamicTopic, message);
     }
 
