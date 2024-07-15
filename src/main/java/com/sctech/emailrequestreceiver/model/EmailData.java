@@ -54,6 +54,7 @@ public class EmailData {
         this.cc = other.cc != null ? other.cc : null;
         this.subject = other.subject;
         this.content = other.content;
+        this.templateId = other.templateId;
         this.type = other.type;
         this.attachment = other.attachment != null ? new ArrayList<>(other.attachment) : null;
         this.status = other.status;
