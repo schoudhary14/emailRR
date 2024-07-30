@@ -1,5 +1,7 @@
 package com.sctech.emailrequestreceiver.controller;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sctech.emailrequestreceiver.constant.AppHeaders;
 import com.sctech.emailrequestreceiver.dto.EmailRequestBatchDto;
@@ -7,7 +9,6 @@ import com.sctech.emailrequestreceiver.dto.EmailRequestMultiRcptDto;
 import com.sctech.emailrequestreceiver.dto.EmailRequestSingleDto;
 import com.sctech.emailrequestreceiver.dto.EmailResponseDto;
 import com.sctech.emailrequestreceiver.exceptions.InvalidRequestException;
-import com.sctech.emailrequestreceiver.exceptions.WarmupRequestException;
 import com.sctech.emailrequestreceiver.model.Template;
 import com.sctech.emailrequestreceiver.service.*;
 import jakarta.validation.Valid;
@@ -47,18 +48,33 @@ public class EmailRequestReceiverController {
     private EmailMultiRcptRequestReceiverService emailMultiRcptRequestReceiverService;
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private RedisService redisService;
 
     @Autowired
     private CreditService creditService;
 
+    @Value("${json.object.size.limit}")
+    private int jsonObjectSizeLimit;
+
     @PostMapping("/send")
-    public ResponseEntity<EmailResponseDto> emailRequest(@Valid @RequestBody EmailRequestSingleDto emailRequestPayload,
+    public ResponseEntity<EmailResponseDto> emailRequest(@Valid @RequestBody String emailRequest,
                                          @Valid @RequestHeader("x-apikey") String apiKey,
                                          BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+
+        EmailRequestSingleDto emailRequestPayload = new EmailRequestSingleDto();
+        try{
+            StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
+                    .maxStringLength(jsonObjectSizeLimit) // Set your desired maximum string length
+                    .build();
+            JsonFactory jsonFactory = new JsonFactory();
+            jsonFactory.setStreamReadConstraints(streamReadConstraints);
+
+            ObjectMapper objectMapper = new ObjectMapper(jsonFactory);
+            emailRequestPayload = objectMapper.readValue(emailRequest, EmailRequestSingleDto.class);
+        }catch (Exception e){
+            logger.error("Failed to parse request : " + e.getMessage());
+            throw new InvalidRequestException("Invalid body");
+        }
 
         if(emailRequestPayload.getTo().size() > emailApiRequestLimit){
             throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
@@ -72,18 +88,21 @@ public class EmailRequestReceiverController {
 
     @PostMapping(value = "/batch/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<EmailResponseDto> emailBatchRequest(@RequestPart("body") String emailRequestBody,
-                                                              @RequestPart("zipFile") MultipartFile zipFile,
+                                                              @RequestPart(value = "zipFile", required = false) MultipartFile zipFile,
                                                               @RequestHeader("x-apikey") String apiKey, BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
             EmailResponseDto emailResponseDto = new EmailResponseDto();
-            if (zipFile.isEmpty()) {
-                emailResponseDto.setStatusCode(400);
-                emailResponseDto.setMessage("zipFile is required.");
-                return new ResponseEntity<>(emailResponseDto, HttpStatus.BAD_REQUEST);
-            }
-
             EmailRequestBatchDto batchEmailRequestDto = null;
             try {
+                StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
+                        .maxStringLength(jsonObjectSizeLimit) // Set your desired maximum string length
+                        .build();
+
+                // Create a JsonFactory and set the StreamReadConstraints
+                JsonFactory jsonFactory = new JsonFactory();
+                jsonFactory.setStreamReadConstraints(streamReadConstraints);
+                ObjectMapper objectMapper = new ObjectMapper(jsonFactory);
+
                 batchEmailRequestDto = objectMapper.readValue(emailRequestBody, EmailRequestBatchDto.class);
                 if(batchEmailRequestDto.getTo().size() > emailApiRequestLimit){
                     throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
@@ -91,10 +110,8 @@ public class EmailRequestReceiverController {
                 Long countOfRecipients = (long) batchEmailRequestDto.getTo().size();
                 creditService.isBalanceAvailable(countOfRecipients);
             }catch (Exception e){
-                emailResponseDto.setStatusCode(400);
-                emailResponseDto.setMessage("Invalid body");
                 logger.error("Failed to parse request : " + e.getMessage());
-                return new ResponseEntity<>(emailResponseDto, HttpStatus.BAD_REQUEST);
+                throw new InvalidRequestException("Invalid body");
             }
             //Email Content
             Template template =  redisService.getTemplateFromCustomId(MDC.get(AppHeaders.COMPANY_ID), batchEmailRequestDto.getTemplateId());
@@ -103,28 +120,50 @@ public class EmailRequestReceiverController {
                 emailResponseDto.setMessage("Invalid TemplateId");
                 return new ResponseEntity<>(emailResponseDto, HttpStatus.BAD_REQUEST);
             }
-            emailResponseDto = emailBatchRequestReceiverService.process(batchEmailRequestDto, template, zipFile);
+
+            if (zipFile == null || zipFile.isEmpty()) {
+                for(EmailRequestBatchDto.Recipient singleTo : batchEmailRequestDto.getTo()) {
+                    if (singleTo.getAttachmentFilenames() != null && !singleTo.getAttachmentFilenames().isEmpty()){
+                        throw new InvalidRequestException("filename is present in request but zipFile is missing.");
+                    }
+                }
+            }
+        emailResponseDto = emailBatchRequestReceiverService.process(batchEmailRequestDto, template, zipFile);
             return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
     }
 
     @PostMapping("/multircpt/send")
-    public ResponseEntity<EmailResponseDto>  emailMultiRcptRequest(@Valid @RequestBody EmailRequestMultiRcptDto emailRequestPayload,
+    public ResponseEntity<EmailResponseDto>  emailMultiRcptRequest(@Valid @RequestBody String emailRequest,
                                                    @RequestHeader("x-apikey") String apiKey,
                                                    BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
         EmailResponseDto emailResponseDto = new EmailResponseDto();
+        EmailRequestMultiRcptDto emailRequestPayload = new EmailRequestMultiRcptDto();
+        try{
+            StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
+                    .maxStringLength(jsonObjectSizeLimit) // Set your desired maximum string length
+                    .build();
+            JsonFactory jsonFactory = new JsonFactory();
+            jsonFactory.setStreamReadConstraints(streamReadConstraints);
 
-            Long countOfRecipients = (long) emailRequestPayload.getTo().size();
-            if(emailRequestPayload.getCc() != null){
-                countOfRecipients = countOfRecipients + emailRequestPayload.getCc().size();
-            }
+            ObjectMapper objectMapper = new ObjectMapper(jsonFactory);
+            emailRequestPayload = objectMapper.readValue(emailRequest, EmailRequestMultiRcptDto.class);
+        }catch (Exception e){
+            logger.error("Failed to parse request : " + e.getMessage());
+            throw new InvalidRequestException("Invalid body");
+        }
 
-            if (emailRequestPayload.getBcc() != null){
-                countOfRecipients = countOfRecipients + emailRequestPayload.getBcc().size();
-            }
-            creditService.isBalanceAvailable(countOfRecipients);
-            emailResponseDto = emailMultiRcptRequestReceiverService.process(emailRequestPayload);
-            return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
+        Long countOfRecipients = (long) emailRequestPayload.getTo().size();
+        if(emailRequestPayload.getCc() != null){
+            countOfRecipients = countOfRecipients + emailRequestPayload.getCc().size();
+        }
+
+        if (emailRequestPayload.getBcc() != null){
+            countOfRecipients = countOfRecipients + emailRequestPayload.getBcc().size();
+        }
+        creditService.isBalanceAvailable(countOfRecipients);
+        emailResponseDto = emailMultiRcptRequestReceiverService.process(emailRequestPayload);
+        return new ResponseEntity<>(emailResponseDto, HttpStatus.OK);
     }
 
 }

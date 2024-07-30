@@ -29,7 +29,7 @@ public class EmailRequestMultiRcptDto {
 
     @NotEmpty(message = "subject is Empty")
     @NotNull(message = "subject is NULL")
-    @Size(max = 50, message = "subject exceeded character limit")
+    @Size(max = 988, message = "subject exceeded character limit")
     private String subject;
 
     @NotEmpty(message = "htmlBody is Empty")

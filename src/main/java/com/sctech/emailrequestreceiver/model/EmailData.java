@@ -21,6 +21,7 @@ public class EmailData {
     private String from;
     private String replyTo;
     private String to;
+    private List<String> otherTo;
     private String bcc;
     private String cc;
     private String subject;
@@ -50,6 +51,7 @@ public class EmailData {
         this.from = other.from;
         this.replyTo = other.replyTo;
         this.to = other.to;
+        this.otherTo = other.otherTo;
         this.bcc = other.bcc != null ? other.bcc : null;
         this.cc = other.cc != null ? other.cc : null;
         this.subject = other.subject;
@@ -68,6 +70,7 @@ public class EmailData {
         this.updatedAt = other.updatedAt;
         this.updatedBy = other.updatedBy;
         this.requestSource = other.requestSource;
+
     }
 
     @Data
@@ -88,6 +91,8 @@ public class EmailData {
         private String fileName;
         private String content;
         private String contentType;
+        private String type;
+        private String filePath;
 
         public  Attachment(){}
 
@@ -95,6 +100,8 @@ public class EmailData {
             this.fileName = other.fileName;
             this.content = other.content;
             this.contentType = other.contentType;
+            this.type = other.type;
+            this.filePath = other.filePath;
         }
     }
 }

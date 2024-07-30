@@ -33,7 +33,7 @@ public class EmailSingleRequestReceiverService extends AbstractEmailRequestRecei
         emailDataEntity.setRequestSource("single");
         //Attachments
         if (emailRequestPayload.getAttachments() != null) {
-            emailDataEntity.setAttachment(createAttachmentFromContent(emailRequestPayload));
+            emailDataEntity.setAttachment(createAttachmentFromContent(emailRequestPayload, emailDataEntity.getRequestId()));
         }
 
         String htmlBody = emailDataEntity.getContent();

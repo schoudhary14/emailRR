@@ -14,6 +14,7 @@ public class Template {
     private String id;
     private String companyId;
     private Long templateId;
+    private String subject;
     private String name;
     private String content;
     private EmailContentType contentType;

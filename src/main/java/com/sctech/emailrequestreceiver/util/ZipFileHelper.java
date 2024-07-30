@@ -17,7 +17,7 @@ import java.util.zip.ZipInputStream;
 @Component
 public class ZipFileHelper {
     private static final Logger logger = LogManager.getLogger(ZipFileHelper.class);
-    public String fileContentFromZip(String desiredFileName, MultipartFile zipFile) {
+    public byte[] fileContentFromZip(String desiredFileName, MultipartFile zipFile) {
         try {
             // Create a ZipInputStream to read the uploaded zip file
             ZipInputStream zipInputStream = new ZipInputStream(zipFile.getInputStream());
@@ -38,13 +38,13 @@ public class ZipFileHelper {
                     }
 
                     // Convert the contents of the entry to a base64-encoded string
-                    String base64Data = Base64.getEncoder().encodeToString(outputStream.toByteArray());
+                    // String base64Data = Base64.getEncoder().encodeToString(outputStream.toByteArray());
 
                     // Close the ZipInputStream
                     zipInputStream.close();
-
                     // Optionally, you can further process the JSON object or return it as is
-                    return base64Data;
+                    // return base64Data;
+                    return outputStream.toByteArray();
                 }
             }
             throw new NotExistsException("File not found in the zip file");

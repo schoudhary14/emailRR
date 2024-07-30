@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class EmailRequestBatchDto extends EmailRequestBaseDto {
 
-    @Size(max = 255, message = "subject exceeded character limit")
+    @Size(max = 988, message = "subject exceeded character limit")
     private String subject;
     private Integer templateId;
     private String senderName;

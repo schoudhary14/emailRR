@@ -37,14 +37,14 @@ public class EmailMultiRcptRequestReceiverService extends AbstractEmailRequestRe
 
         //Attachments
         if (emailRequestPayload.getAttachments() != null) {
-            emailDataEntity.setAttachment(createAttachmentFromContent(emailRequestPayload));
+            emailDataEntity.setAttachment(createAttachmentFromContent(emailRequestPayload, emailDataEntity.getRequestId()));
         }
 
         // CC
         if(emailRequestPayload.getCc() != null && !emailRequestPayload.getCc().isEmpty()){
             String cc = emailRequestPayload.getCc().stream()
                     .filter(Objects::nonNull)
-                    .collect(Collectors.joining(", "));
+                    .collect(Collectors.joining(","));
             emailDataEntity.setCc(cc);
         }
 
@@ -52,25 +52,25 @@ public class EmailMultiRcptRequestReceiverService extends AbstractEmailRequestRe
         if(emailRequestPayload.getBcc() != null && !emailRequestPayload.getBcc().isEmpty()) {
             String bcc = emailRequestPayload.getBcc().stream()
                     .filter(Objects::nonNull)
-                    .collect(Collectors.joining(", "));
+                    .collect(Collectors.joining(","));
             emailDataEntity.setBcc(bcc);
 
         }
 
         List<EmailData> emailDataList = new ArrayList<>();
-        for(String singleTo : emailRequestPayload.getTo()) {
-            EmailData tmpEmailData = new EmailData(emailDataEntity);
 
-            //To
-            tmpEmailData.setTo(singleTo);
+        String multipleTo = emailRequestPayload.getTo().stream()
+                .filter(s -> s != null)
+                .collect(Collectors.joining(","));
+        emailDataEntity.setTo(multipleTo);
 
-            if (tmpEmailData.getContent().contains("{{") && tmpEmailData.getContent().contains("}}")){
-                logger.error("Dynamic variable is missing or invalid");
-                throw new InvalidRequestException("Dynamic variable is missing or invalid");
-            }
-            tmpEmailData.setCreatedAt(LocalDateTime.now());
-            emailDataList.add(tmpEmailData);
+        if (emailDataEntity.getContent().contains("{{") && emailDataEntity.getContent().contains("}}")){
+            logger.error("Dynamic variable is missing or invalid");
+            throw new InvalidRequestException("Dynamic variable is missing or invalid");
         }
+
+        emailDataEntity.setCreatedAt(LocalDateTime.now());
+        emailDataList.add(emailDataEntity);
         return queueEmail(requestTopic, emailDataList);
     }
 

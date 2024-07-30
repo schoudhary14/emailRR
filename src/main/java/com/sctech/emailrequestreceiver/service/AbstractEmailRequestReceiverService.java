@@ -20,10 +20,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Component
 public class AbstractEmailRequestReceiverService {
@@ -47,6 +47,29 @@ public class AbstractEmailRequestReceiverService {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private S3Service s3Service;
+
+    @Value("${aws.s3.folder}")
+    private String s3Folder;
+
+    @Value("${app.attachment.message.filter.size}")
+    private Integer attachmentLimitFilterSize;
+
+    private static byte[] decodeBase64String(String base64String) {
+        return Base64.getDecoder().decode(base64String);
+    }
+
+    private static String encodeBase64String(byte[] byteArray) {
+        return Base64.getEncoder().encodeToString(byteArray);
+    }
+
+    public static String getCurrentDatePrefix() {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+        LocalDateTime now = LocalDateTime.now();
+        return dtf.format(now);
+    }
 
     protected EmailResponseDto queueEmail(String requestTopic, List<EmailData> emailDataList) {
         try {
@@ -81,37 +104,58 @@ public class AbstractEmailRequestReceiverService {
         return response;
     }
 
-    protected List<EmailData.Attachment> createAttachmentFromZip(MultipartFile zipFile, EmailRequestBatchDto.Recipient singleTo) {
-        List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
-        for (String fileName : singleTo.getAttachmentFilenames()) {
-            String fileContent = zipFileHelper.fileContentFromZip(fileName,zipFile);
-            EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
-            emailDataAttachment.setFileName(fileName);
-            emailDataAttachment.setContentType(zipFileHelper.getFileContentType(fileName));
-            emailDataAttachment.setContent(fileContent);
-            emailDataAttachmentList.add(emailDataAttachment);
+    protected EmailData.Attachment createAttachmentFromZip(MultipartFile zipFile, String fileName, String requestId) {
+        //String fileContent = zipFileHelper.fileContentFromZip(fileName,zipFile);
+        String keyName = s3Folder + "/" + requestId + "/" + UUID.randomUUID() + "/" + fileName;
+        //byte[] fileContent = s3Service.uploadFileFromZip(zipFile, fileName, keyName);
+        byte[] fileContent = zipFileHelper.fileContentFromZip(fileName, zipFile);
+        EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
+        emailDataAttachment.setFileName(fileName);
+        emailDataAttachment.setContentType(zipFileHelper.getFileContentType(fileName));
+        if(fileContent.length > attachmentLimitFilterSize){
+            s3Service.uploadFile(keyName, fileContent);
+            emailDataAttachment.setFilePath(keyName);
+            emailDataAttachment.setType("s3");
+        }else{
+            emailDataAttachment.setContent(encodeBase64String(fileContent));
         }
-        return emailDataAttachmentList;
+        return emailDataAttachment;
     }
 
-    protected List<EmailData.Attachment> createAttachmentFromContent(EmailRequestSingleDto emailRequestPayload) {
+    protected List<EmailData.Attachment> createAttachmentFromContent(EmailRequestSingleDto emailRequestPayload, String requestId) {
         List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
         for (EmailRequestSingleDto.Attachment attachment : emailRequestPayload.getAttachments()){
             EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
             emailDataAttachment.setFileName(attachment.getFilename());
             emailDataAttachment.setContentType(attachment.getContentType());
-            emailDataAttachment.setContent(attachment.getContent());
+            byte[] contentByte = decodeBase64String(attachment.getContent());
+            if (contentByte.length > attachmentLimitFilterSize){
+                String keyName = s3Folder + "/" + getCurrentDatePrefix() + "/" + requestId + "/" + UUID.randomUUID() + "/" + attachment.getFilename();
+                s3Service.uploadFile(keyName, contentByte);
+                emailDataAttachment.setType("s3");
+                emailDataAttachment.setFilePath(keyName);
+            }else{
+                emailDataAttachment.setContent(attachment.getContent());
+            }
             emailDataAttachmentList.add(emailDataAttachment);
         }
         return emailDataAttachmentList;
     }
 
-    protected List<EmailData.Attachment> createAttachmentFromContent(EmailRequestMultiRcptDto emailRequestPayload) {
+    protected List<EmailData.Attachment> createAttachmentFromContent(EmailRequestMultiRcptDto emailRequestPayload, String requestId) {
         List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
         for (EmailRequestMultiRcptDto.Attachment attachment : emailRequestPayload.getAttachments()){
             EmailData.Attachment emailDataAttachment = new EmailData.Attachment();
             emailDataAttachment.setFileName(attachment.getFilename());
-            emailDataAttachment.setContent(attachment.getContent());
+            byte[] contentByte = decodeBase64String(attachment.getContent());
+            if (contentByte.length > attachmentLimitFilterSize){
+                String keyName = s3Folder + "/" + getCurrentDatePrefix() + "/" + requestId + "/" + UUID.randomUUID() + "/" + attachment.getFilename();
+                s3Service.uploadFile(keyName, contentByte);
+                emailDataAttachment.setType("s3");
+                emailDataAttachment.setFilePath(keyName);
+            }else {
+                emailDataAttachment.setContent(attachment.getContent());
+            }
             emailDataAttachmentList.add(emailDataAttachment);
         }
         return emailDataAttachmentList;

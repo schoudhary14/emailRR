@@ -9,6 +9,8 @@ import com.sctech.emailrequestreceiver.model.Template;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +28,10 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
 
     public EmailResponseDto process(EmailRequestBatchDto batchEmailRequestDto, Template template, MultipartFile zipFile){
 
+
+        if(batchEmailRequestDto.getSubject() == null || batchEmailRequestDto.getSubject().isEmpty()){
+            batchEmailRequestDto.setSubject(template.getSubject());
+        }
 
         EmailData emailDataEntity = createEmailDataEntity(batchEmailRequestDto.getFrom(), batchEmailRequestDto.getReplyTo()
                 , batchEmailRequestDto.getSubject(), template.getContent(), template.getContentType().toString()
@@ -55,8 +61,17 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
                 throw new InvalidRequestException("Dynamic variables are missing or invalid");
             }
 
-            //Attachment
-            tmpEmailData.setAttachment(createAttachmentFromZip(zipFile, singleTo));
+            List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
+            for(String fileName : singleTo.getAttachmentFilenames()) {
+                if (fileName != null && !fileName.isEmpty()) {
+                    emailDataAttachmentList.add(createAttachmentFromZip(zipFile, fileName, tmpEmailData.getRequestId()));
+                }
+            }
+
+            if(emailDataAttachmentList != null && emailDataAttachmentList.size() > 0) {
+                tmpEmailData.setAttachment(emailDataAttachmentList);
+            }
+
             tmpEmailData.setCreatedAt(LocalDateTime.now());
             emailDataList.add(tmpEmailData);
         }
