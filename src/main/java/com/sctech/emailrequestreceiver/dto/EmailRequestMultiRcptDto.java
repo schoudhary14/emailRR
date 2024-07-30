@@ -1,6 +1,7 @@
 package com.sctech.emailrequestreceiver.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -42,6 +43,10 @@ public class EmailRequestMultiRcptDto {
     private String senderName;
     private List<Attachment> attachments;
 
+    @JsonProperty("email-sent-status")
+    private String emailSentStatus;
+
+
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Attachment {
@@ -53,6 +58,8 @@ public class EmailRequestMultiRcptDto {
         @NotEmpty(message = "attachments.content is Empty")
         @NotNull(message = "attachments.content is NULL")
         private String content;
+
+        private String contentType;
 
     }
 

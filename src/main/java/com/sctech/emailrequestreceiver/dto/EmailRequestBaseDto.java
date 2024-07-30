@@ -1,5 +1,6 @@
 package com.sctech.emailrequestreceiver.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -25,6 +26,9 @@ public class EmailRequestBaseDto {
     private Map<String, String> globalDynamicSubject;
     private Map<String, String> globalDynamicHTMLBody;
     private String replyTo;
+
+    @JsonProperty("email-sent-status")
+    private String emailSentStatus;
 
     @Data
     public static class Recipient {
