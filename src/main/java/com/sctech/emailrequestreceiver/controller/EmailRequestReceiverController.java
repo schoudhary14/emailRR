@@ -128,7 +128,11 @@ public class EmailRequestReceiverController {
             if (zipFile == null || zipFile.isEmpty()) {
                 for(EmailRequestBatchDto.Recipient singleTo : batchEmailRequestDto.getTo()) {
                     if (singleTo.getAttachmentFilenames() != null && !singleTo.getAttachmentFilenames().isEmpty()){
-                        throw new InvalidRequestException("filename is present in request but zipFile is missing.");
+                        for(String fileName : singleTo.getAttachmentFilenames()) {
+                            if(fileName != null && !fileName.isEmpty()) {
+                                throw new InvalidRequestException("filename is present in request but zipFile is missing.");
+                            }
+                        }
                     }
                 }
             }
