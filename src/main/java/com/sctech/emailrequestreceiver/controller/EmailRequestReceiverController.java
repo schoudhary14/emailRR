@@ -91,6 +91,10 @@ public class EmailRequestReceiverController {
                                                               @RequestPart(value = "zipFile", required = false) MultipartFile zipFile,
                                                               @RequestHeader("x-apikey") String apiKey, BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
+            if(emailRequestBody == null){
+                throw new InvalidRequestException("Invalid body");
+            }
+
             EmailResponseDto emailResponseDto = new EmailResponseDto();
             EmailRequestBatchDto batchEmailRequestDto = null;
             try {
