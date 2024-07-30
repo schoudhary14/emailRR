@@ -30,6 +30,10 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
 
 
         if(batchEmailRequestDto.getSubject() == null || batchEmailRequestDto.getSubject().isEmpty()){
+            if(template.getSubject() == null){
+                logger.error("Subject is missing");
+                throw new InvalidRequestException("Subject is missing");
+            }
             batchEmailRequestDto.setSubject(template.getSubject());
         }
 
