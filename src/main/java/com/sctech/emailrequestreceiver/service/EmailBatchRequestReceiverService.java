@@ -65,15 +65,18 @@ public class EmailBatchRequestReceiverService  extends AbstractEmailRequestRecei
                 throw new InvalidRequestException("Dynamic variables are missing or invalid");
             }
 
-            List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
-            for(String fileName : singleTo.getAttachmentFilenames()) {
-                if (fileName != null && !fileName.isEmpty()) {
-                    emailDataAttachmentList.add(createAttachmentFromZip(zipFile, fileName, tmpEmailData.getRequestId()));
+            //Attachments
+            if(singleTo.getAttachmentFilenames() != null){
+                List<EmailData.Attachment> emailDataAttachmentList = new ArrayList<>();
+                for(String fileName : singleTo.getAttachmentFilenames()) {
+                    if (fileName != null && !fileName.isEmpty()) {
+                        emailDataAttachmentList.add(createAttachmentFromZip(zipFile, fileName, tmpEmailData.getRequestId()));
+                    }
                 }
-            }
 
-            if(emailDataAttachmentList != null && emailDataAttachmentList.size() > 0) {
-                tmpEmailData.setAttachment(emailDataAttachmentList);
+                if(emailDataAttachmentList != null && emailDataAttachmentList.size() > 0) {
+                    tmpEmailData.setAttachment(emailDataAttachmentList);
+                }
             }
 
             tmpEmailData.setCreatedAt(LocalDateTime.now());
