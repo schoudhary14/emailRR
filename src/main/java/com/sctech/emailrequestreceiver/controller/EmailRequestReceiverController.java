@@ -21,7 +21,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.DataBinder;
+import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.security.KeyManagementException;
@@ -53,13 +56,16 @@ public class EmailRequestReceiverController {
     @Autowired
     private CreditService creditService;
 
+    @Autowired
+    private Validator validator;
+
     @Value("${json.object.size.limit}")
     private int jsonObjectSizeLimit;
 
     @PostMapping("/send")
     public ResponseEntity<EmailResponseDto> emailRequest(@Valid @RequestBody String emailRequest,
                                          @Valid @RequestHeader("x-apikey") String apiKey,
-                                         BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+                                         BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, MethodArgumentNotValidException {
 
         EmailRequestSingleDto emailRequestPayload = new EmailRequestSingleDto();
         try{
@@ -76,6 +82,16 @@ public class EmailRequestReceiverController {
             throw new InvalidRequestException("Invalid body");
         }
 
+        // Manually validate the deserialized DTO
+        DataBinder dataBinder = new DataBinder(emailRequestPayload);
+        dataBinder.setValidator(validator);
+        dataBinder.validate();
+        BindingResult result = dataBinder.getBindingResult();
+
+        if (result.hasErrors()) {
+            throw new MethodArgumentNotValidException(null, result);
+        }
+
         if(emailRequestPayload.getTo().size() > emailApiRequestLimit){
             throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
         }
@@ -89,34 +105,46 @@ public class EmailRequestReceiverController {
     @PostMapping(value = "/batch/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<EmailResponseDto> emailBatchRequest(@RequestPart("body") String emailRequestBody,
                                                               @RequestPart(value = "zipFile", required = false) MultipartFile zipFile,
-                                                              @RequestHeader("x-apikey") String apiKey, BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+                                                              @RequestHeader("x-apikey") String apiKey, BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, MethodArgumentNotValidException {
 
-            if(emailRequestBody == null){
-                throw new InvalidRequestException("Invalid body");
+        if(emailRequestBody == null){
+            throw new InvalidRequestException("Invalid body");
+        }
+
+        EmailResponseDto emailResponseDto = new EmailResponseDto();
+        EmailRequestBatchDto batchEmailRequestDto = null;
+        try {
+            StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
+                    .maxStringLength(jsonObjectSizeLimit) // Set your desired maximum string length
+                    .build();
+
+            // Create a JsonFactory and set the StreamReadConstraints
+            JsonFactory jsonFactory = new JsonFactory();
+            jsonFactory.setStreamReadConstraints(streamReadConstraints);
+            ObjectMapper objectMapper = new ObjectMapper(jsonFactory);
+
+            batchEmailRequestDto = objectMapper.readValue(emailRequestBody, EmailRequestBatchDto.class);
+            if(batchEmailRequestDto.getTo().size() > emailApiRequestLimit){
+                throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
             }
+        }catch (Exception e){
+            logger.error("Failed to parse request : " + e.getMessage());
+            throw new InvalidRequestException("Invalid body");
+        }
 
-            EmailResponseDto emailResponseDto = new EmailResponseDto();
-            EmailRequestBatchDto batchEmailRequestDto = null;
-            try {
-                StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
-                        .maxStringLength(jsonObjectSizeLimit) // Set your desired maximum string length
-                        .build();
+        // Manually validate the deserialized DTO
+        DataBinder dataBinder = new DataBinder(batchEmailRequestDto);
+        dataBinder.setValidator(validator);
+        dataBinder.validate();
+        BindingResult result = dataBinder.getBindingResult();
 
-                // Create a JsonFactory and set the StreamReadConstraints
-                JsonFactory jsonFactory = new JsonFactory();
-                jsonFactory.setStreamReadConstraints(streamReadConstraints);
-                ObjectMapper objectMapper = new ObjectMapper(jsonFactory);
+        if (result.hasErrors()) {
+            throw new MethodArgumentNotValidException(null, result);
+        }
 
-                batchEmailRequestDto = objectMapper.readValue(emailRequestBody, EmailRequestBatchDto.class);
-                if(batchEmailRequestDto.getTo().size() > emailApiRequestLimit){
-                    throw new InvalidRequestException("Request Size should lower than " + emailApiRequestLimit);
-                }
-                Long countOfRecipients = (long) batchEmailRequestDto.getTo().size();
-                creditService.isBalanceAvailable(countOfRecipients);
-            }catch (Exception e){
-                logger.error("Failed to parse request : " + e.getMessage());
-                throw new InvalidRequestException("Invalid body");
-            }
+
+        Long countOfRecipients = (long) batchEmailRequestDto.getTo().size();
+            creditService.isBalanceAvailable(countOfRecipients);
             //Email Content
             Template template =  redisService.getTemplateFromCustomId(MDC.get(AppHeaders.COMPANY_ID), batchEmailRequestDto.getTemplateId());
             if (template == null){
@@ -143,11 +171,11 @@ public class EmailRequestReceiverController {
     @PostMapping("/multircpt/send")
     public ResponseEntity<EmailResponseDto>  emailMultiRcptRequest(@Valid @RequestBody String emailRequest,
                                                    @RequestHeader("x-apikey") String apiKey,
-                                                   BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+                                                   BindingResult bindingResult) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, MethodArgumentNotValidException {
 
         EmailResponseDto emailResponseDto = new EmailResponseDto();
         EmailRequestMultiRcptDto emailRequestPayload = new EmailRequestMultiRcptDto();
-        try{
+        try {
             StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
                     .maxStringLength(jsonObjectSizeLimit) // Set your desired maximum string length
                     .build();
@@ -159,6 +187,21 @@ public class EmailRequestReceiverController {
         }catch (Exception e){
             logger.error("Failed to parse request : " + e.getMessage());
             throw new InvalidRequestException("Invalid body");
+        }
+
+        // Validate the deserialized DTO
+//        Set<ConstraintViolation<EmailRequestMultiRcptDto>> violations = validator.validate(emailRequestPayload);
+//        if (!violations.isEmpty()) {
+//            throw new MethodArgumentNotValidException(violations);
+//        }
+        // Manually validate the deserialized DTO
+        DataBinder dataBinder = new DataBinder(emailRequestPayload);
+        dataBinder.setValidator(validator);
+        dataBinder.validate();
+        BindingResult result = dataBinder.getBindingResult();
+
+        if (result.hasErrors()) {
+            throw new MethodArgumentNotValidException(null, result);
         }
 
         Long countOfRecipients = (long) emailRequestPayload.getTo().size();

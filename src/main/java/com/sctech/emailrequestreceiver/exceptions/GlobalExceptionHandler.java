@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
         // Customize error message based on the specific exception details
         String fieldName = ex.getName();
         String invalidValue = ex.getValue().toString();
-        String errorDetail = "Invalid value " + invalidValue + " for parameter " + fieldName + ".";
+        String errorDetail = "Missing/Invalid value " + invalidValue + " for parameter " + fieldName + ".";
         return buildErrorResponse(HttpStatus.BAD_REQUEST.value(), ErrorCodes.INVALID, ErrorMessages.INVALID + " : " + errorDetail);
     }
 

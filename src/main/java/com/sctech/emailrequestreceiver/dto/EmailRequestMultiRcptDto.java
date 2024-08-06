@@ -21,7 +21,6 @@ public class EmailRequestMultiRcptDto {
     @Pattern(regexp = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$", message = "from is invalid")
     private String from;
 
-    @Valid
     @NotEmpty(message = "to is Empty")
     @NotNull(message = "to is NULL")
     private List<String> to;

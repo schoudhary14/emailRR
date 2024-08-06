@@ -2,7 +2,7 @@ package com.sctech.emailrequestreceiver.constant;
 
 public class ErrorMessages {
     public static String EXISTS = "Already exists";
-    public static String INVALID = "Details are incorrect";
+    public static String INVALID = "Details are incorrect/missing";
     public static String LOCKED = "The account is locked";
     public static String ACCESS_RESTRICT = "You are not authorized to access this resource";
     public static String JWT_INVALID = "The JWT signature is invalid";

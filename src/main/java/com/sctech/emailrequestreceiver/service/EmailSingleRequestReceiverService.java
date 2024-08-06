@@ -12,14 +12,18 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class EmailSingleRequestReceiverService extends AbstractEmailRequestReceiverService{
 
     private static final Logger logger = LogManager.getLogger(EmailSingleRequestReceiverService.class);
+
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{.*?}}");
+
     @Value("${email.api.queue.singleTopic}")
     private String requestTopic;
-
 
     public EmailResponseDto process(EmailRequestSingleDto emailRequestPayload, String apiKey){
 
@@ -51,11 +55,19 @@ public class EmailSingleRequestReceiverService extends AbstractEmailRequestRecei
             ////Subject
             tmpEmailData.setSubject(emailDynamicVariableReplace.replace(subject,singleTo.getDynamicSubject()));
 
-            if (tmpEmailData.getContent().contains("{{") && tmpEmailData.getContent().contains("}}")){
-                logger.error("Dynamica variable is missing or invalid");
-                throw new InvalidRequestException("Dynamica variable is missing or invalid");
+
+            //if (tmpEmailData.getContent().contains("{{") && tmpEmailData.getContent().contains("}}")){
+            Matcher matcherContent = PLACEHOLDER_PATTERN.matcher(tmpEmailData.getContent());
+            if(matcherContent.find()){
+                logger.error("Dynamica variable for content");
+                throw new InvalidRequestException("Dynamica variable for content");
             }
 
+            Matcher matcherSubject = PLACEHOLDER_PATTERN.matcher(tmpEmailData.getSubject());
+            if(matcherSubject.find()){
+                logger.error("Dynamica variable for subject");
+                throw new InvalidRequestException("Dynamica variable for subject");
+            }
 
             tmpEmailData.setCreatedAt(LocalDateTime.now());
             emailDataList.add(tmpEmailData);
